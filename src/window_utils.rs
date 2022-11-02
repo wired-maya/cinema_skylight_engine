@@ -8,7 +8,7 @@ pub struct GlWindow {
 }
 
 impl GlWindow {
-    pub fn new(width: u32, height: u32, title: &str) -> GlWindow {
+    pub fn new(window_config: WindowConfig) -> GlWindow {
         // Create window
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
         glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -16,7 +16,10 @@ impl GlWindow {
         #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
 
         let (mut window, events) = glfw.create_window(
-            width, height, title, glfw::WindowMode::Windowed
+            window_config.width,
+            window_config.height,
+            window_config.title.as_str(),
+            glfw::WindowMode::Windowed
         ).expect("Failed to create GLFW window");
 
         // Apply window options
@@ -30,4 +33,10 @@ impl GlWindow {
         // Move into struct for easy referencing
         GlWindow { glfw, events: Some(events), window }
     }
+}
+
+pub struct WindowConfig {
+    pub width: u32,
+    pub height: u32,
+    pub title: String
 }

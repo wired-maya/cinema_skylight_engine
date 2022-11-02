@@ -1,21 +1,20 @@
-use std::{thread, sync::{mpsc::Receiver, Arc, Mutex}};
+use std::{thread, sync::mpsc::{Receiver, Sender}};
 use glfw::{WindowEvent, Key, Action};
-
-use crate::window_utils::GlWindow;
+use super::main::MainThreadEvent;
 
 pub struct InputThread {
     pub thread: thread::JoinHandle<()>
 }
 
 impl InputThread {
-    pub fn new(events: Receiver<(f64, WindowEvent)>, gl_window: Arc<Mutex<GlWindow>>) -> InputThread {
+    pub fn new(events: Receiver<(f64, WindowEvent)>, main_sender: Sender<MainThreadEvent>) -> InputThread {
         let thread = thread::spawn(move || loop {
             // Recv is blocking so this doesn't run unless it's needed
             match events.recv() {
                 Ok((_, event)) => {
                     match event {
                         WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                            gl_window.lock().unwrap().window.set_should_close(true);
+                            main_sender.send(MainThreadEvent::CloseWindow).unwrap();
                         },
                         _ => ()
                     }
