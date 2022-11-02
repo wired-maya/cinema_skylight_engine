@@ -119,7 +119,7 @@ fn main() {
 }
 ```
 
-The top level API handles blocking between `.display()` calls so everything is executed sequentially and to allow for developer defined logic inbetween displaying things on the screen to take place, possibly even mutating the widgets themselves. The `.display()` call also handles animating the widget in if it is not present on the screen yet.
+The top level API handles blocking between `.display()` calls so everything is executed sequentially and to allow for developer defined logic inbetween displaying things on the screen to take place, possibly even mutating the widgets themselves. The `.display()` call also handles animating the widget in if it is not present on the screen yet, and updating values if the widget's config is updated (for example it is resized).
 
 Behind the scenes these structs are a thin wrapper over a weak reference to the struct on the UI thread, and is dropped if the struct it is referencing is dropped. The functions implemented on the wrapper struct handle all dereferencing, thread sending, and blocking. This blocking behaviour also allows for menu widgets to return their result for the developer to handle that logic.
 
