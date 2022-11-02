@@ -12,7 +12,7 @@ Despite the highest level of the engine being simple, it contains access to many
 
 ### Expanding on Inspiration
 
-Despite being inspired by the Film-Window system, this engine intends to improve and expand its function to create something new and original.
+Being inspired by the Film-Window system, this engine intends to improve and expand its function to create something new and original.
 
 ## Approach to Building
 
@@ -111,11 +111,15 @@ The engine will consist of at least 3 threads that handle all logic:
 
 An optional fourth thread to handle all 3D environment widget rendering calls. Possibly also more threading for multithreaded asset loading. [Ensure extra threads aren't created when they can't be](https://doc.rust-lang.org/std/thread/struct.Builder.html), as well as [create a drop trait to ensure the threads complete their work before exiting](https://doc.rust-lang.org/book/ch20-03-graceful-shutdown-and-cleanup.html).
 
+Have each function that updates UI (maybe that's its own trait?) wait until user input before proceeding, allowing the declarative rust-native style for using the engine.
+
 #### Render Stack
 
 Each widget to be rendered on the screen is contained in a growable list called the render stack. Every frame it is iterated over, and each item in the stack is drawn on top of eachother sequentially (first element is the first drawn, etc), so that the closer to the end an element is on the render stack, the more on top it is.
 
 This will be the main data structure that owns the widgets, and will decide whether they need to be dropped (usually upon recieving input from the interaction thread).
+
+This is performed without Depth Testing, so first in first drawn is always obeyed.
 
 #### Rust Crate
 
@@ -163,15 +167,13 @@ While loading screens are completely custom, allow for an engine-wide feedback s
     - Represents position of widget in draw stack, if not specified defaults to last item in the stack
     - If a position is set, the widget stack handles it by inserting the widget into that position of the array and shifting the other widgets accordingly
     - Most likely needs to be a getter and setter function rather than a struct property
-- Each widget struct implements a Widget trait which contains useful functions such as .draw(), which uses &self: Box<Self> to ensure it's only drawn when in the render stack
+- Each widget struct implements a Widget trait which contains useful functions such as `.draw()`, which uses `&self: Box<Self>` to ensure it's only drawn when in the render stack
 
 #### General Structure
 
 The general method of widgets is to be a struct with information on style, location, size, etc. When it is created and added to the render stack it is animated in, and when it is dropped it is animated out. Each individual widget is its own self contained struct, and so each individual widget can be styled differently. 
 
 Allow creation of one single style struct later on that is stored by a widget of that type (different style struct per each widget) to allow for less code duplication. As well, allow the changing of the default styles of the engine to further cut down on code duplication (e.g. most text is drawn according to style defined at the top of the game, and then specific different text needs to then be given an overrided style struct). Default trait could take from default of the engine instance to ensure least amount of code duplication.
-
-Have each function that updates UI (maybe that's its own trait?) wait until user input before proceeding, allowing the declarative rust-native style for using the engine.
 
 ### OpenGL Implementations
 
@@ -184,10 +186,6 @@ Currently the engine will only support OpenGL, but in the future plan to support
 - To ensure safety, the IDs and direct references to OpenGL objects on the GPU need to be private to ensure that all unsafety is properly abstracted out.
 - These abstractions could be treated like smart pointers
 - Drop trait de-allocates ALL objects automatically unless hot-reloading
-
-#### Rendering Stack
-
-- The rendering stack is rendered sequentially meaning first in first rendered, which without depth testing results in "layering" when drawing
 
 #### 3D Environment Widget
 
@@ -214,7 +212,7 @@ If the above system is unfeasable, you could have an engine that throws all chan
 
 Shader hot reload is simple, just tie a button to the recompilation of shaders on the GPU.
 
-### Extra Notes
+### Other Notes
 
 - Enum with `Rgb(i32, i32, i32)`, `Hsv(i32, i32, i32)`, etc. values could be very useful as a design pattern
 - Might be able to use mutable [static vars](https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#accessing-or-modifying-a-mutable-static-variable)?
