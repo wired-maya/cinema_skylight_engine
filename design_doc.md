@@ -109,6 +109,8 @@ The engine will consist of at least 3 threads that handle all logic:
 2. UI thread that contains the render loop, this contains the render stack as well handles everything OpenGL except loading assets.
 3. Interaction thread that handles any interactions a player might have, for example advancing text, choosing from a menu, or later interacting with the game world.
 
+This will work by having the `main()` function send jobs to the Main thread, which then handles them sequentially and sends off jobs to the other threads while blocking until some user interaction advances the game's logic.
+
 An optional fourth thread to handle all 3D environment widget rendering calls. Possibly also more threading for multithreaded asset loading. [Ensure extra threads aren't created when they can't be](https://doc.rust-lang.org/std/thread/struct.Builder.html), as well as [create a drop trait to ensure the threads complete their work before exiting](https://doc.rust-lang.org/book/ch20-03-graceful-shutdown-and-cleanup.html).
 
 Have each function that updates UI (maybe that's its own trait?) wait until user input before proceeding, allowing the declarative rust-native style for using the engine.

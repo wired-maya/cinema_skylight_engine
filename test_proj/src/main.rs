@@ -1,9 +1,8 @@
 use cinema_skylight_engine;
 
+static WIDTH: u32 = 1280;
+static HEIGHT: u32 = 720;
+
 fn main() {
-    let num = cinema_skylight_engine::add(1, 1);
-
-    assert_eq!(num, 2);
-
-    println!("Hello, world! Number is {}", num);
+    cinema_skylight_engine::init(WIDTH, HEIGHT, "Test Game");
 }

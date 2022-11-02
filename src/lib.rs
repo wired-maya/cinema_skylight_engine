@@ -1,14 +1,20 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use std::sync::{Mutex, Arc};
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+use window_utils::GlWindow;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub mod widgets;
+pub mod threads;
+pub mod window_utils;
+pub mod gl_safe;
+pub mod debug;
+
+pub fn init(width: u32, height: u32, title: &str) {
+    // Init window and its GL context
+    let mut gl_window = GlWindow::new(width, height, title);
+    gl_safe::init(&mut gl_window.window);
+
+    // Move events reciever out and into the input thread (unwrap never fails here)
+    let events = gl_window.events.take().unwrap();
+    let _input_thread = threads::InputThread::new(events);
+    
 }
