@@ -97,7 +97,43 @@ The general structure is defined as such:
 
 1. An underlying GL backend that can be switched out depending on which GL is used. Could be a struct implementing an extremely extensive amount of traits. This would be handled by the developer.
 2. The core of the engine that runs most of the code. This would include multiple threads, the render loop, etc.
-3. API abstraction that enables the simple top level creation of games.
+3. API abstraction layer over the core engine that enables the simple top level creation of games.
+
+#### Top-Level Developer API Syntax
+
+The top-level API's syntax will be similar to the "stateless instance" way the GL crate works. Instead of being a limitation however, here it is intentional for simplicity to the end developer. The general structure of a game written in this API will be as such:
+
+```rust
+use cinema_skylight_engine::*;
+
+fn main() {
+	let config = CSEngineCongfig { ... };
+
+	CSEngine::init(config); // Global state is created here
+
+	let text = widget::Text(widget::TextConfig { ... }); // Can be any widget here
+	text.display("Foo");
+	text.close();
+
+	// ...Rest of game here...
+}
+```
+
+The top level API handles blocking between `.display()` calls so everything is executed sequentially and to allow for developer defined logic inbetween displaying things on the screen to take place, possibly even mutating the widgets themselves. The `.display()` call also handles animating the widget in if it is not present on the screen yet.
+
+Behind the scenes these structs are a thin wrapper over a weak reference to the struct on the UI thread, and is dropped if the struct it is referencing is dropped. The functions implemented on the wrapper struct handle all dereferencing, thread sending, and blocking. This blocking behaviour also allows for menu widgets to return their result for the developer to handle that logic.
+
+Multiple events happening with one advance of the state (e.g. when you advance the visual novel, a second text box pops up at the same time as the text advancing in the main text box) can be expressed with macros which translate into similar code to what is in the `.display()` function, just with only one block:
+
+```rust
+simul!(
+	SimulOptions { ... }, // Says how the widgets are animated in, see definition
+	text1.display("Foo"), // Variable length arguments similar to println!()
+	text2.display("Bar")
+)
+```
+
+Could later support a text file that is either interpreted or trans-piled into rust code to make writing this even simpler.
 
 #### Core Engine
 
@@ -105,11 +141,11 @@ The general structure is defined as such:
 
 The engine will consist of at least 3 threads that handle all logic:
 
-1. Main thread that handles moving between states, feeding the other threads, loading assets etc.
+1. Main thread that handles interaction, moving between states, feeding the other threads, loading assets etc.
 2. UI thread that contains the render loop, this contains the render stack as well handles everything OpenGL except loading assets.
-3. Interaction thread that handles any interactions a player might have, for example advancing text, choosing from a menu, or later interacting with the game world.
+3. Loading thread that handles quietly loading everything in the background to have a smoother experience.
 
-This will work by having the `main()` function send jobs to the Main thread, which then handles them sequentially and sends off jobs to the other threads while blocking until some user interaction advances the game's logic.
+This will work by having the `main()` function send jobs to the Main thread, which then handles them sequentially and sends off jobs to the loading thread, which returns the main thread a weak reference and sends the actual widget to the UI thread, and then waiting until some user interaction advances the game's logic. The program thread (or the `main()` function) is read sequentially and blocked until the user advances the game state to allow for a simple API for developers.
 
 An optional fourth thread to handle all 3D environment widget rendering calls. Possibly also more threading for multithreaded asset loading. [Ensure extra threads aren't created when they can't be](https://doc.rust-lang.org/std/thread/struct.Builder.html), as well as [create a drop trait to ensure the threads complete their work before exiting](https://doc.rust-lang.org/book/ch20-03-graceful-shutdown-and-cleanup.html).
 
@@ -176,6 +212,12 @@ While loading screens are completely custom, allow for an engine-wide feedback s
 The general method of widgets is to be a struct with information on style, location, size, etc. When it is created and added to the render stack it is animated in, and when it is dropped it is animated out. Each individual widget is its own self contained struct, and so each individual widget can be styled differently. 
 
 Allow creation of one single style struct later on that is stored by a widget of that type (different style struct per each widget) to allow for less code duplication. As well, allow the changing of the default styles of the engine to further cut down on code duplication (e.g. most text is drawn according to style defined at the top of the game, and then specific different text needs to then be given an overrided style struct). Default trait could take from default of the engine instance to ensure least amount of code duplication.
+
+#### 3D View and Background Widgets
+
+As these are the only widgets (for now) that contain 3D scenes inside of them, have them act as a wrapper window to a 3D `scene` struct. This is to say, the styling and animation logic is in the widget specific struct, which holds a more general `scene` struct that has the job of rendering the scene.
+
+This scene struct will have a vector of scene objects, a skybox, and so on, and handles in-scene animations, transformations, and rendering via a draw function/trait.
 
 ### OpenGL Implementations
 
