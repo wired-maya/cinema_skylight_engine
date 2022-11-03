@@ -27,18 +27,19 @@ impl CinemaSkylightEngine {
         let (main_sender, main_receiver) = mpsc::channel();
         let main_thread = threads::MainThread::new(window_config, main_receiver, program_sender);
 
-        let engine = CinemaSkylightEngine { program_receiver, main_thread, main_sender: Some(main_sender) };
-
-        // Waits for initialization to be complete before continuing
-        engine.wait_for_advance();
-
-        engine
+        CinemaSkylightEngine { program_receiver, main_thread, main_sender: Some(main_sender) }
     }
 
     pub fn wait_for_advance(&self) {
-        // Block until advance signal is given
-        let event = self.program_receiver.recv().unwrap();
-        println!("MainThreadEvent::{:#?}", event);
+        loop {
+            // Block until advance signal is given
+            let event = self.program_receiver.recv().unwrap();
+            println!("MainThreadEvent::{:#?}", event);
+
+            if event == MainThreadEvent::AdvanceText {
+                break; // Only break if advance signal is given
+            }
+        }
     }
 
     // Satiates the main thread for debug purposes, preventing the window from becoming non-responsive

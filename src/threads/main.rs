@@ -56,7 +56,7 @@ impl MainThread {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum MainThreadEvent {
     AdvanceText,
     InitComplete
