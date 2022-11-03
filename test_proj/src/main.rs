@@ -1,5 +1,4 @@
-use cinema_skylight_engine;
-use cinema_skylight_engine::WindowConfig;
+use cinema_skylight_engine::*;
 
 static WIDTH: u32 = 1280;
 static HEIGHT: u32 = 720;
@@ -11,5 +10,7 @@ fn main() {
         title: String::from("Test Game")
     };
 
-    cinema_skylight_engine::init(window_config);
+    let engine = CinemaSkylightEngine::init(window_config);
+
+    engine.wait_for_advance();
 }

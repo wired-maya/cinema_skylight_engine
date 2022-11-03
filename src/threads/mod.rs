@@ -1,8 +1,8 @@
 mod ui;
 mod main;
-mod input;
+mod program_events;
 
 pub use main::MainThread;
 pub use main::MainThreadEvent;
 
-pub use input::InputThread;
+pub use program_events::ProgramEvent;

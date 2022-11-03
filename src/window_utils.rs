@@ -3,7 +3,7 @@ use glfw::{Window, Glfw, WindowEvent, Context};
 
 pub struct GlWindow {
     pub glfw: Glfw,
-    pub events: Option<Receiver<(f64, WindowEvent)>>,
+    pub events: Receiver<(f64, WindowEvent)>,
     pub window: Window,
 }
 
@@ -31,7 +31,7 @@ impl GlWindow {
         window.set_cursor_mode(glfw::CursorMode::Disabled);
 
         // Move into struct for easy referencing
-        GlWindow { glfw, events: Some(events), window }
+        GlWindow { glfw, events, window }
     }
 }
 
