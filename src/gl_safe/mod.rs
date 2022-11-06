@@ -1,6 +1,12 @@
 use glfw::Window;
 use crate::debug::debug_message_callback;
 
+mod shader_program;
+mod error;
+
+pub use shader_program::*;
+pub use error::GlError;
+
 pub fn init(window: &mut Window) {
     // Create GL context
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);

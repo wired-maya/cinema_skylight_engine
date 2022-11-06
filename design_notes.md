@@ -111,7 +111,7 @@ fn main() {
 
 	CSEngine::init(config); // Global state is created here
 
-	let text = widget::Text(widget::TextConfig { ... }); // Can be any widget here
+	let text = widget::Text::new(widget::TextConfig { ... }); // Can be any widget here
 	text.display("Foo");
 	text.close();
 
@@ -135,6 +135,16 @@ simul!(
 
 Could later support a text file that is either interpreted or trans-piled into rust code to make writing this even simpler.
 
+##### Loading screens
+
+Loading screens are handled by allowing the user to create whatever light-weight screen they want using the widget system, then wait until all the widgets specified have completed loading and returned weak references before advancing.
+
+The `new()` constructor on widgets passes widgets to the loading thread where they are loaded and return a weak reference. Certain widgets would not need to be loaded, for example text widgets, provided there isn't a feature later on where you can load them from text files.
+
+There should be a wait macro/function that waits until the weak reference is returned back, to ensure everything works correctly. This would be program thread blocking, and could be used to ensure a widget is loaded before it is displayed. The `.display()` method calls the same function to ensure that the widget is loaded before displaying, allowing you to also define the widget earlier in the script and bypass loading screens by hoping it's loaded by then. If it isn't it just waits for a bit. Could look into adding some default widget that appears on screen to signify if the game is still waiting for a widget to load outside of a loading screen.
+
+Because a loading screen would finish when the loading has completed instead of on user input, add in the config for a given widget an option as to what the `.display()` waits for when blocking, if at all. By default this would still be waiting for the user to advance the text.
+
 #### Core Engine
 
 ##### Multiple Threads
@@ -142,8 +152,9 @@ Could later support a text file that is either interpreted or trans-piled into r
 The engine will consist of at least 3 threads that handle all logic:
 
 1. Main thread that handles interaction, moving between states, feeding the other threads, loading assets etc.
-2. UI thread that contains the render loop, this contains the render stack as well handles everything OpenGL except loading assets.
-3. Loading thread that handles quietly loading everything in the background to have a smoother experience.
+	- See if you can change this to solely an input handling thread with everything else handled by the program thread
+1. UI thread that contains the render loop, this contains the render stack as well handles everything OpenGL except loading assets.
+2. Loading thread that handles quietly loading everything in the background to have a smoother experience.
 
 This will work by having the `main()` function send jobs to the Main thread, which then handles them sequentially and sends off jobs to the loading thread, which returns the main thread a weak reference and sends the actual widget to the UI thread, and then waiting until some user interaction advances the game's logic. The program thread (or the `main()` function) is read sequentially and blocked until the user advances the game state to allow for a simple API for developers.
 
@@ -170,14 +181,6 @@ Use Rust's system to be extremely aggressive to remove unused code, for example 
 #### Render Loop
 
 The engine has a dedicated render loop and a closure you can set to be run during the render loop, allowing to either replace the render loop entirely or just have something be calculated each frame.
-
-#### Logging
-
-Logging should be able to changed based on the level of logging desired. This extends to OpenGL logging and errors, as well as debug for the general engine. Logging should default to minimum level when building for release and maximum level when building for debug. A basic 3 levels could be the following:
-
-- Level 1: Only severe errors
-- Level 2: Errors and warnings
-- Level 3: Errors, warnings, and debug statements
 
 ### Asset Loading
 
@@ -255,6 +258,18 @@ If the above system is unfeasable, you could have an engine that throws all chan
 #### Shader Hot Reload
 
 Shader hot reload is simple, just tie a button to the recompilation of shaders on the GPU.
+
+### Error Handling
+
+In the engine, there are two kinds of error handling. The core engine uses `Result<T, E>` types that propagate up through the engine, so be handled by anyone who is writing a program using the core engine. The abstract wrapper around the core engine handles these errors by logging them to console, simplifying the process.
+
+#### Logging
+
+Logging should be able to changed based on the level of logging desired. This extends to OpenGL logging and errors, as well as debug for the general engine. Logging should default to minimum level when building for release and maximum level when building for debug. A basic 3 levels could be the following:
+
+- Level 1: Only severe errors
+- Level 2: Errors and warnings
+- Level 3: Errors, warnings, and debug statements
 
 ### Other Notes
 
