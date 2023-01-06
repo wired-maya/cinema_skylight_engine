@@ -1,7 +1,5 @@
 /target
 /Cargo.lock
 .rustc_info.json
-test_proj/target
-test_proj/Cargo.lock
 .obsidian
 /test_proj
