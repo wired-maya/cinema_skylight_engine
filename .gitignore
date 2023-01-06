@@ -4,3 +4,4 @@
 test_proj/target
 test_proj/Cargo.lock
 .obsidian
+/test_proj
