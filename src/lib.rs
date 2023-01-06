@@ -5,8 +5,8 @@ pub mod widgets;
 pub mod threads;
 pub mod window_utils;
 
-use widgets::Widget;
-pub use window_utils::WindowConfig;
+use widgets::*;
+pub use window_utils::*;
 
 pub struct CinemaSkylightEngine {
     program_receiver: Receiver<MainThreadEvent>,

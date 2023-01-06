@@ -7,6 +7,7 @@ pub struct GlWindow {
     pub window: Window,
 }
 
+// TODO: find a better name (EngineWindow?)
 impl GlWindow {
     pub fn new(window_config: WindowConfig) -> GlWindow {
         // Create window
