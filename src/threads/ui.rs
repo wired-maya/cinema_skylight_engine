@@ -1,5 +1,5 @@
 use std::{thread, sync::mpsc::{Receiver, Sender, TryRecvError}, ops::{Deref, DerefMut}};
-use crate::widgets::{Widget, Drawable};
+use crate::widgets::Widget;
 
 use super::MainThreadEvent;
 

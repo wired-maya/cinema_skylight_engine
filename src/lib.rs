@@ -4,8 +4,6 @@ use threads::{ProgramEvent, MainThreadEvent};
 pub mod widgets;
 pub mod threads;
 pub mod window_utils;
-pub mod gl_safe;
-pub mod debug;
 
 use widgets::Widget;
 pub use window_utils::WindowConfig;
