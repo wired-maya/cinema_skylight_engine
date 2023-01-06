@@ -1,15 +1,14 @@
 use std::sync::mpsc::Receiver;
 use glfw::{Window, Glfw, WindowEvent, Context};
 
-pub struct GlWindow {
+pub struct EngineWindow {
     pub glfw: Glfw,
     pub events: Receiver<(f64, WindowEvent)>,
     pub window: Window,
 }
 
-// TODO: find a better name (EngineWindow?)
-impl GlWindow {
-    pub fn new(window_config: WindowConfig) -> GlWindow {
+impl EngineWindow {
+    pub fn new(window_config: WindowConfig) -> EngineWindow {
         // Create window
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
         glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -32,7 +31,7 @@ impl GlWindow {
         window.set_cursor_mode(glfw::CursorMode::Disabled);
 
         // Move into struct for easy referencing
-        GlWindow { glfw, events, window }
+        EngineWindow { glfw, events, window }
     }
 }
 

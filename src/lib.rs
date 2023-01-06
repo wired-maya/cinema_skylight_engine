@@ -4,9 +4,12 @@ use threads::{ProgramEvent, MainThreadEvent};
 pub mod widgets;
 pub mod threads;
 pub mod window_utils;
+pub mod resource_manager;
 
-use widgets::*;
+// TODO: remember to tighten these restrictions up in a way that makes sense
+pub use widgets::*;
 pub use window_utils::*;
+pub use resource_manager::*;
 
 pub struct CinemaSkylightEngine {
     program_receiver: Receiver<MainThreadEvent>,

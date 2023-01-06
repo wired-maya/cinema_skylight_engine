@@ -2,7 +2,7 @@ use std::{thread, sync::{mpsc::{Receiver, Sender, TryRecvError}}};
 
 use glfw::{WindowEvent, Key, Action};
 
-use crate::{window_utils::{GlWindow, WindowConfig}};
+use crate::{window_utils::{EngineWindow, WindowConfig}};
 use super::ProgramEvent;
 
 pub struct MainThread {
@@ -17,7 +17,7 @@ impl MainThread {
     ) -> MainThread {
         let thread = thread::spawn(move || {
             // Init window and its GL context
-            let mut gl_window = GlWindow::new(window_config);
+            let mut gl_window = EngineWindow::new(window_config);
             // gl_safe::init(&mut gl_window.window);
 
             // Allows waiting for complete initialization
