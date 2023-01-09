@@ -11,3 +11,5 @@ glfw = "0.48.0"
 silver_gl = {path = "../silver_gl"}
 cgmath = "0.18.0"
 rand = "0.8.5"
+tobj = "3.2.3"
+image = "0.24.3"
