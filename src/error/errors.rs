@@ -1,10 +1,13 @@
 use std::{fmt::Display, error::Error};
 
+use silver_gl::GlError;
+
 #[derive(Debug)]
 pub enum EngineError {
     ObjLoadError(tobj::LoadError),
     ImageError(image::ImageError),
-    IoError(io::IoError)
+    IoError(std::io::Error),
+    GlError(GlError)
 }
 
 impl Display for EngineError {
@@ -13,6 +16,7 @@ impl Display for EngineError {
             EngineError::ObjLoadError(obj_err) => write!(f, "{}", obj_err),
             EngineError::ImageError(img_err) => write!(f, "{}", img_err),
             EngineError::IoError(io_err) => write!(f, "{}", io_err),
+            EngineError::GlError(gl_err) => write!(f, "{}", gl_err)
         }
     }
 }
@@ -31,8 +35,14 @@ impl From<image::ImageError> for EngineError {
     }
 }
 
-impl From<io::IoError> for EngineError {
-    fn from(err: io::IoError) -> Self {
+impl From<std::io::Error> for EngineError {
+    fn from(err: std::io::Error) -> Self {
         EngineError::IoError(err)
+    }
+}
+
+impl From<GlError> for EngineError {
+    fn from(err: GlError) -> Self {
+        EngineError::GlError(err)
     }
 }
