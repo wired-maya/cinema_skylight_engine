@@ -12,7 +12,9 @@ pub struct ResourceManager {
     shader_store: HashMap<ShaderPathBundle, Rc<ShaderProgram>>
 }
 
-// TODO: make all loading async so that it is faster :)
+// TODO: Make all loading async so that it is faster :)
+// TODO: Time to beat: ~15 seconds on laptop
+// TODO: Learn to use Rayon, Tokio
 impl ResourceManager {
     fn _load_model(&mut self, path: &str) -> Result<Rc<RefCell<Model>>, EngineError> {
         let path = Path::new(path);
