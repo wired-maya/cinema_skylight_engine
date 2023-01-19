@@ -308,3 +308,15 @@ wonderful weather we are having, huh
 - Force multi-line text blocks would be written surrounded with "" (This would override word wrapping on >1 height text widgets)
 - You can do multiple things are once by wrapping them in curly braces
 - Has header with window size and other information
+
+## Visual Editor
+
+A visual editor will exist that streamlines creating files with the scripting syntax, as well as 3D scenes. It will use a modified engine window for the preview (which can be switched out by you if you implement the proper functions in your game's debug exe).
+
+The editor will have two modes, the VN mode, and the 3D scene mode:
+
+In the VN mode, you have a video editor-like timeline at the bottom of various widgets, which can be live previewed in the window. These are separated with "steps" instead of seconds. The user has multiple sizing options, which are interchangeable based on each widget. The options include pixels (there is a standard size the project expects to be, and they are scaled relatively based on size of the window), absolute pixels (these are absolute and do not scale with the window, use wisely!), percents (0-100% width and height wise, very difficult to make squares), and "cells" (these take your aspect ratio you choose at the start of the project, and multiply them by a set amount, default 100 e.g. 16:9 => 1600x900 cells)
+
+In 3D mode, you get to create a scene by importing models, nesting gameobjects, maybe even enabling physics, navigation nodes, etc. These scenes are used in the 3D game view widgets and can interact with them to produce a dynamic UI.
+
+The 3D scenes are saved to scene files, similar to the script files of the VN portion, which contain all necessary data for the engine to display.
