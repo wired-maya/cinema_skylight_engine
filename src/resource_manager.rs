@@ -114,10 +114,10 @@ impl ResourceManager {
 
         // TODO: if there is an alpha, mark texture as transparent
         let (internal_format, data_format) = match img {
-            ImageLuma8(_) => (gl::RED, gl::RED),
-            ImageLumaA8(_) => (gl::RG, gl::RG),
-            ImageRgb8(_) => (gl::SRGB, gl::RGB),
-            ImageRgba8(_) => (gl::SRGB_ALPHA, gl::RGBA),
+            ImageLuma8(_) => (gl::R8, gl::RED),
+            ImageLumaA8(_) => (gl::RG8, gl::RG),
+            ImageRgb8(_) => (gl::SRGB8, gl::RGB),
+            ImageRgba8(_) => (gl::SRGB8_ALPHA8, gl::RGBA),
             _ => (gl::SRGB, gl::RGB) // If nothing else, try default
         };
 
