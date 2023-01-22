@@ -2,11 +2,6 @@ use std::{rc::Rc, cell::RefCell};
 use cgmath::{Quaternion, Matrix4, Vector3, vec3};
 use silver_gl::Model;
 
-// TODO: First do this as just a struct, to learn how the functions and props will work.
-// TODO: Make trait that has all the functions, which also has default GameObject struct
-// TODO: The widget would be an implementation of that trait
-// TODO: GameObject can have a child, as well as an Rc<dyn Drawable> object (this is what is drawn)
-// TODO: Draw functions are recursive.
 pub struct GameObject {
     pub position: Vector3<f32>,
     pub rotation: Quaternion<f32>,
