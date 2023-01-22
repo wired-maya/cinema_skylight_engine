@@ -1,5 +1,5 @@
 use std::{rc::Rc, collections::HashMap, path::Path, cell::RefCell, fs::File, io::Read};
-use cgmath::{vec3, vec2, Matrix4, SquareMatrix, Vector3, Vector2};
+use cgmath::{vec3, vec2, Matrix4, Vector3, Vector2};
 use silver_gl::{Model, Texture, Vertex, Mesh, GlImage, Skybox, ShaderProgram, ShaderCodeBundle};
 use image::DynamicImage::*;
 
@@ -93,7 +93,7 @@ impl ResourceManager {
         let model = Rc::new(RefCell::new(Model::new(
             vertices,
             indices,
-            vec![Matrix4::identity()],
+            vec![],
             meshes
         )));
         self.model_store.insert(obj_path, Rc::clone(&model));
