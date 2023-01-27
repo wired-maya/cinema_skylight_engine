@@ -46,7 +46,7 @@ impl View3DScene {
                 skybox_shader_program,
                 camera,
                 render_pipeline,
-                world_obj: GameObject::new()
+                world_obj: GameObject::default()
             }
         )
     }

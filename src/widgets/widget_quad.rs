@@ -1,5 +1,5 @@
 use cgmath::{Vector3, Vector2};
-use silver_gl::{Model, Vertex};
+use silver_gl::{Model, Vertex, Mesh};
 
 pub fn create_wquad() -> Model {
     // Flat panel definition
@@ -39,7 +39,7 @@ pub fn create_wquad() -> Model {
         vertices,
         indices,
         Vec::new(), 
-        Vec::new()
+        vec![Mesh::new(0, 6)]
     );
 
     model

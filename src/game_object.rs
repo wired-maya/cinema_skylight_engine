@@ -1,5 +1,5 @@
 use std::{rc::Rc, cell::RefCell};
-use cgmath::{Quaternion, Matrix4, Vector3, vec3};
+use cgmath::{Quaternion, Matrix4, Vector3};
 use silver_gl::Model;
 
 pub struct GameObject {
@@ -11,20 +11,22 @@ pub struct GameObject {
     model_index: usize,
 }
 
-impl GameObject {
-    pub fn new() -> GameObject {
-        GameObject {
-            position: vec3(0.0, 0.0, 0.0),
-            rotation: Quaternion::new(1.0, 0.0, 0.0, 0.0),
-            scale: 1.0,
-            children: Vec::new(),
+impl Default for GameObject {
+    fn default() -> Self {
+        Self {
+            position: Vector3::<f32>::new(0.0, 0.0, 0.0),
+            rotation: Quaternion::<f32>::new(1.0, 0.0, 0.0, 0.0),
+            scale: Default::default(),
+            children: Default::default(),
             drawable: None,
-            model_index: 0
+            model_index: Default::default()
         }
     }
+}
 
+impl GameObject {
     pub fn from_model(model: Rc<RefCell<Model>>) -> GameObject {
-        let mut obj = GameObject::new();
+        let mut obj = GameObject::default();
         obj.set_drawable(Some(model));
 
         obj
