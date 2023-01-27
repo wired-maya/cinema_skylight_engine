@@ -32,8 +32,8 @@ impl GameObject {
 
     pub fn transform_matrix(&self) -> Matrix4<f32> {
         let mut matrix = Matrix4::<f32>::from_translation(self.position);
-        matrix = matrix * Matrix4::<f32>::from(self.rotation);
         matrix = matrix * Matrix4::<f32>::from_scale(self.scale);
+        matrix = matrix * Matrix4::<f32>::from(self.rotation);
 
         matrix
     }

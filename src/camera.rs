@@ -22,6 +22,10 @@ pub struct CameraSize {
     pub fov: f32,
 }
 
+// TODO: Move render pipeline here, so that cameras handle most of the shader, letting them
+// TODO: be re-used. They will therefore have a draw function, as well as all the proper bind
+// TODO: functions. This also makes it more intuitive to bind camera outputs to textures when
+// TODO: creating widgets
 pub struct Camera {
     pub position: Point3<f32>,
     pub uniform_buffer: Option<UniformBuffer>,

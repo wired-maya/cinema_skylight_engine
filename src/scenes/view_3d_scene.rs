@@ -72,6 +72,9 @@ impl Scene for View3DScene {
 
         self.world_obj.set_transform_to_drawable(Matrix4::identity());
         
+        // TODO: Find a way to have instanced rendering only render a certain subset of
+        // TODO: the transforms for this scene, so that multiple 3D scenes with different
+        // TODO: shaders can use the same models
         for model in self.models.iter() {
             model.borrow().draw(&self.model_shader_program)?;
         }
