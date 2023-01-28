@@ -110,8 +110,8 @@ impl Camera {
                 self.width,
                 self.height,
                 0.0,
-                self.far,
-                self.near
+                -1.0,
+                1.0
             ),
         }
     }

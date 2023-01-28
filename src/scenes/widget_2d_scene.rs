@@ -1,5 +1,5 @@
 use std::{rc::Rc};
-use cgmath::Vector4;
+use cgmath::{Vector4, Matrix4, SquareMatrix};
 use silver_gl::{RenderPipeline, Model, ShaderProgram};
 use crate::{Camera, EngineError, ResourceManager, ShaderPathBundle, CameraSize, create_wquad, BackgroundWidget, Widget, Scene, CameraProjection};
 
@@ -7,7 +7,7 @@ pub struct Widget2dScene {
     pub widget_quad: Model,
     pub widget_shader_program: Rc<ShaderProgram>,
     pub render_pipeline: Box<dyn RenderPipeline>,
-    pub top_widget: BackgroundWidget,
+    pub top_widget: BackgroundWidget, // TODO: Should become widget box
     pub camera: Camera,
     
 }
@@ -39,8 +39,8 @@ impl Widget2dScene {
                 render_pipeline,
                 top_widget: BackgroundWidget {
                     colour: bottom_colour,
-                    width: camera_bundle.width,
-                    height: camera_bundle.height,
+                    width: camera_bundle.width as f32,
+                    height: camera_bundle.height as f32,
                     ..Default::default()
                 },
                 camera
@@ -50,13 +50,14 @@ impl Widget2dScene {
 
     // All in one functions to simplify the recusive widget-specific function
     pub fn set_widget_tree(&mut self) -> Result<(), EngineError> {
+        // TODO: When setting widget tree, get all indices and manually change their height transforms
         // Clear all quad props
         self.widget_quad.meshes[0].diffuse_textures.clear();
         unsafe { self.widget_quad.tbo.clear_inner() };
 
         // Recursively set all widget info
         self.widget_shader_program.use_program();
-        self.top_widget.traverse_and_push_all(&mut self.widget_quad, &self.widget_shader_program)?;
+        self.top_widget.traverse_and_push_all(&mut self.widget_quad, &self.widget_shader_program, Matrix4::identity())?;
 
         // Finally send the batched transforms
         self.widget_quad.tbo.send_data_mut();
@@ -92,8 +93,10 @@ impl Scene for Widget2dScene {
         self.camera.width = width as f32;
         self.camera.height = height as f32;
         self.camera.send_proj()?;
-        self.top_widget.width = width;
-        self.top_widget.height = height;
+        self.top_widget.width = width as f32;
+        self.top_widget.height = height as f32;
+
+        self.set_widget_tree()?;
 
         Ok(())
     }

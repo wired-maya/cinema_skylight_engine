@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use cgmath::{Vector3, Quaternion, Matrix4, vec3};
+use cgmath::{Quaternion, Matrix4, Vector3};
 use silver_gl::{Model, Texture, ShaderProgram};
 
 use crate::EngineError;
@@ -29,18 +29,18 @@ use crate::EngineError;
 // TODO: transforms each widget an equal distance between [0.0, -1.0] on z. Drawing will then
 // TODO: just be as simple as drawing the one quad, with all textures bound in the correct order.
 pub trait Widget {
-    fn get_position(&self) -> Vector3<i32>;
+    fn get_position(&self) -> Vector3<f32>;
     fn get_rotation(&self) -> Quaternion<f32>;
-    fn get_size(&self) -> (i32, i32);
+    fn get_size(&self) -> (f32, f32);
     fn get_texture(&self) -> Option<Rc<Texture>> { None } // Used for texture primitive widgets
     fn get_children(&self) -> &Vec<Box<dyn Widget>>;
     fn get_children_mut(&mut self) -> &mut Vec<Box<dyn Widget>>;
     fn transform_matrix(&self) -> Matrix4<f32> {
-        let pos = self.get_position();
-        let mut matrix = Matrix4::<f32>::from_translation(vec3(pos.x as f32, pos.y as f32, pos.z as f32));
+        let mut matrix = Matrix4::<f32>::from_translation(self.get_position());
         let (width, height) = self.get_size();
-        matrix = matrix * Matrix4::<f32>::from_nonuniform_scale(width as f32, height as f32, 1.0);
+        matrix = matrix * Matrix4::<f32>::from_nonuniform_scale(width, height, 1.0);
         matrix = matrix * Matrix4::<f32>::from(self.get_rotation());
+        matrix = self.get_vec_space() * matrix;
         
         matrix
     }
@@ -48,6 +48,10 @@ pub trait Widget {
     // These are used to optimize changing textures and transforms
     fn get_index(&self) -> Option<usize>;
     fn set_index(&mut self, i: Option<usize>);
+
+    // Used for relative widgets
+    fn get_vec_space(&self) -> Matrix4<f32>;
+    fn set_vec_space(&mut self, vec_space: Matrix4<f32>);
 
     // Send visual properties of the widget to shader program
     fn send_widget_info(&self, shader_program: &ShaderProgram) -> Result<(), EngineError>;
@@ -58,11 +62,14 @@ pub trait Widget {
     // program is bound.
     // Panics if there are less than 1 meshes in quad.
     // Needs to be run when widget tree is changed
-    fn traverse_and_push_all(&mut self, quad: &mut Model, shader_program: &ShaderProgram) -> Result<(), EngineError> {
+    fn traverse_and_push_all(&mut self, quad: &mut Model, shader_program: &ShaderProgram, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
         self.set_index(Some(quad.tbo.len()));
+        self.set_vec_space(vec_space);
         
+        let matrix = self.transform_matrix();
+
         unsafe {
-            quad.tbo.push_to_inner(self.transform_matrix());
+            quad.tbo.push_to_inner(matrix);
         }
 
         if let Some(texture) = self.get_texture() {
@@ -72,7 +79,7 @@ pub trait Widget {
         self.send_widget_info(shader_program)?;
 
         for widget in self.get_children_mut() {
-            widget.traverse_and_push_all(quad, shader_program)?;
+            widget.traverse_and_push_all(quad, shader_program, matrix)?;
         }
 
         Ok(())
