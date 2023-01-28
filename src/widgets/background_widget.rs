@@ -1,4 +1,4 @@
-use cgmath::{Vector4, Vector3, Quaternion, vec3};
+use cgmath::{Vector4, Vector3, Quaternion};
 use crate::{Widget, EngineError};
 use silver_gl::ShaderProgram;
 
@@ -17,7 +17,7 @@ impl Default for BackgroundWidget {
         Self {
             colour: Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0),
             position: Vector3::<i32>::new(0, 0, 0),
-            rotation: Quaternion::<f32>::new(1.0, 0.0, 0.0, 0.0),
+            rotation: Quaternion::<f32>::new(0.0, -1.0, 0.0, 0.0),
             width: Default::default(),
             height: Default::default(),
             children: Default::default(),
@@ -37,9 +37,8 @@ impl Widget for BackgroundWidget {
 
     fn send_widget_info(&self, shader_program: &ShaderProgram) -> Result<(), crate::EngineError> {
         if let Some(index) = self.index {
-            let pos = self.position;
             let name = format!("BackgroundWidgets[{}]", index);
-            shader_program.set_vector_3(name.as_str(), &vec3(pos.x as f32, pos.y as f32, pos.z as f32))?;
+            shader_program.set_vector_4(name.as_str(), &self.colour)?;
         } else {
             return Err(EngineError::WidgetIndexMissing());
         }

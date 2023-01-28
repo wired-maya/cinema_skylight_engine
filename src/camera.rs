@@ -108,10 +108,10 @@ impl Camera {
             CameraProjection::ORTHO => cgmath::ortho(
                 0.0,
                 self.width,
-                0.0,
                 self.height,
-                self.near,
-                self.far
+                0.0,
+                self.far,
+                self.near
             ),
         }
     }

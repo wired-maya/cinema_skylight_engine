@@ -37,7 +37,12 @@ impl Widget2dScene {
                 widget_quad: create_wquad(),
                 widget_shader_program,
                 render_pipeline,
-                top_widget: BackgroundWidget { colour: bottom_colour, ..Default::default() },
+                top_widget: BackgroundWidget {
+                    colour: bottom_colour,
+                    width: camera_bundle.width,
+                    height: camera_bundle.height,
+                    ..Default::default()
+                },
                 camera
             }
         )
@@ -87,6 +92,8 @@ impl Scene for Widget2dScene {
         self.camera.width = width as f32;
         self.camera.height = height as f32;
         self.camera.send_proj()?;
+        self.top_widget.width = width;
+        self.top_widget.height = height;
 
         Ok(())
     }
