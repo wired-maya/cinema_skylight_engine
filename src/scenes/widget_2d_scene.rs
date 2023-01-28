@@ -1,7 +1,7 @@
 use std::{rc::Rc};
 use cgmath::Vector4;
 use silver_gl::{RenderPipeline, Model, ShaderProgram};
-use crate::{Camera, EngineError, ResourceManager, ShaderPathBundle, CameraSize, create_wquad, BackgroundWidget, Widget, Scene};
+use crate::{Camera, EngineError, ResourceManager, ShaderPathBundle, CameraSize, create_wquad, BackgroundWidget, Widget, Scene, CameraProjection};
 
 pub struct Widget2dScene {
     pub widget_quad: Model,
@@ -21,12 +21,16 @@ impl Widget2dScene {
         bottom_colour: Vector4<f32>
     ) -> Result<Widget2dScene, EngineError> {
         let widget_shader_program = resource_manager.load_shader_program(widget_shader_paths)?;
-        let camera = Camera::new(
+        let mut camera = Camera::new(
             camera_bundle.width,
             camera_bundle.height,
             camera_bundle.fov,
             vec![&widget_shader_program]
         )?;
+
+        // TODO: Move this to camera bundle
+        camera.projection = CameraProjection::ORTHO;
+        camera.send_proj()?;
 
         Ok(
             Widget2dScene {
