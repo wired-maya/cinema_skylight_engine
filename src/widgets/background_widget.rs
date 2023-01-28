@@ -1,10 +1,10 @@
-use cgmath::{Vector4, Quaternion, Matrix4, SquareMatrix, Vector3};
+use cgmath::{Vector4, Quaternion, Matrix4, SquareMatrix, Vector2};
 use crate::{Widget, EngineError};
 use silver_gl::ShaderProgram;
 
 pub struct BackgroundWidget {
     pub colour: Vector4<f32>,
-    pub position: Vector3<f32>,
+    pub position: Vector2<f32>,
     pub rotation: Quaternion<f32>,
     pub width: f32,
     pub height: f32,
@@ -17,7 +17,7 @@ impl Default for BackgroundWidget {
     fn default() -> Self {
         Self {
             colour: Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0),
-            position: Vector3::<f32>::new(0.0, 0.0, 0.0),
+            position: Vector2::<f32>::new(0.0, 0.0),
             rotation: Quaternion::<f32>::new(1.0, 0.0, 0.0, 0.0),
             width: Default::default(),
             height: Default::default(),
@@ -29,7 +29,7 @@ impl Default for BackgroundWidget {
 }
 
 impl Widget for BackgroundWidget {
-    fn get_position(&self) -> Vector3<f32> { self.position }
+    fn get_position(&self) -> Vector2<f32> { self.position }
     fn get_rotation(&self) -> cgmath::Quaternion<f32> { self.rotation }
     fn get_size(&self) -> (f32, f32) { (self.width, self.height) }
     fn get_children(&self) -> &Vec<Box<dyn Widget>> { &self.children }

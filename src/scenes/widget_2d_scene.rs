@@ -21,6 +21,7 @@ impl Widget2dScene {
         bottom_colour: Vector4<f32>
     ) -> Result<Widget2dScene, EngineError> {
         let widget_shader_program = resource_manager.load_shader_program(widget_shader_paths)?;
+        // TODO: CameraSize should be taken by Camera::new
         let mut camera = Camera::new(
             camera_bundle.width,
             camera_bundle.height,
@@ -50,7 +51,6 @@ impl Widget2dScene {
 
     // All in one functions to simplify the recusive widget-specific function
     pub fn set_widget_tree(&mut self) -> Result<(), EngineError> {
-        // TODO: When setting widget tree, get all indices and manually change their height transforms
         // Clear all quad props
         self.widget_quad.meshes[0].diffuse_textures.clear();
         unsafe { self.widget_quad.tbo.clear_inner() };
@@ -102,7 +102,9 @@ impl Scene for Widget2dScene {
     }
 
     fn draw(&mut self) -> Result<(), EngineError> {
-        unsafe { gl::Enable(gl::DEPTH_TEST) };
+        // Instanced rendering without depth testing draws in order of the matrices present,
+        // resulting in everything being drawn in the correct order
+        unsafe { gl::Disable(gl::DEPTH_TEST) };
 
         self.camera.send_view()?;
 
