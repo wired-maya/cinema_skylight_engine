@@ -1,7 +1,7 @@
 use std::{rc::Rc};
 use cgmath::Vector4;
-use silver_gl::{RenderPipeline, Model, ShaderProgram, Scene};
-use crate::{Camera, EngineError, ResourceManager, ShaderPathBundle, CameraSize, create_wquad, BackgroundWidget, Widget};
+use silver_gl::{RenderPipeline, Model, ShaderProgram};
+use crate::{Camera, EngineError, ResourceManager, ShaderPathBundle, CameraSize, create_wquad, BackgroundWidget, Widget, Scene};
 
 pub struct Widget2dScene {
     pub widget_quad: Model,
@@ -78,7 +78,7 @@ impl Widget2dScene {
 }
 
 impl Scene for Widget2dScene {
-    fn set_size(&mut self, width: i32, height: i32) -> Result<(), silver_gl::GlError> {
+    fn set_size(&mut self, width: i32, height: i32) -> Result<(), EngineError> {
         self.render_pipeline.set_size(width, height)?;
         self.camera.width = width as f32;
         self.camera.height = height as f32;
@@ -87,7 +87,7 @@ impl Scene for Widget2dScene {
         Ok(())
     }
 
-    fn draw(&mut self) -> Result<(), silver_gl::GlError> {
+    fn draw(&mut self) -> Result<(), EngineError> {
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
         self.camera.send_view()?;
@@ -95,6 +95,7 @@ impl Scene for Widget2dScene {
         self.render_pipeline.bind();
         self.widget_shader_program.use_program();
 
+        self.send_widget_info()?;
         self.widget_quad.draw(&self.widget_shader_program)?;
 
         self.render_pipeline.draw()?;

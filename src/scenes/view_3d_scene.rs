@@ -1,7 +1,7 @@
 use std::{rc::Rc, cell::RefCell};
 use cgmath::{Matrix4, SquareMatrix};
-use silver_gl::{Model, Skybox, ShaderProgram, RenderPipeline, GlError, Scene};
-use crate::{Camera, GameObject, CameraSize, ShaderPathBundle, ResourceManager, EngineError};
+use silver_gl::{Model, Skybox, ShaderProgram, RenderPipeline};
+use crate::{Camera, GameObject, CameraSize, ShaderPathBundle, ResourceManager, EngineError, Scene};
 
 // TODO: Once moved to engine, switch to using gameobjects. Resource manager can then handle
 // TODO: drawing maybe?
@@ -53,7 +53,7 @@ impl View3DScene {
 }
 
 impl Scene for View3DScene {
-    fn set_size(&mut self, width: i32, height: i32) -> Result<(), GlError> {
+    fn set_size(&mut self, width: i32, height: i32) -> Result<(), EngineError> {
         self.render_pipeline.set_size(width, height)?;
         self.camera.width = width as f32;
         self.camera.height = height as f32;
@@ -62,7 +62,7 @@ impl Scene for View3DScene {
         Ok(())
     }
 
-    fn draw(&mut self) -> Result<(), GlError> {
+    fn draw(&mut self) -> Result<(), EngineError> {
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
         self.camera.send_view()?;
