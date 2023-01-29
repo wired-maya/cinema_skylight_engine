@@ -16,7 +16,7 @@ impl Default for GameObject {
         Self {
             position: Vector3::<f32>::new(0.0, 0.0, 0.0),
             rotation: Quaternion::<f32>::new(1.0, 0.0, 0.0, 0.0),
-            scale: Default::default(),
+            scale: 1.0,
             children: Default::default(),
             drawable: None,
             model_index: Default::default()
@@ -37,12 +37,17 @@ impl GameObject {
         matrix = matrix * Matrix4::<f32>::from_scale(self.scale);
         matrix = matrix * Matrix4::<f32>::from(self.rotation);
 
+        println!("{:#?}", matrix);
+
         matrix
     }
 
     // Needs to be called after changes are made to pos and rot
     pub fn set_transform_to_drawable(&mut self, vec_space: Matrix4<f32>) {
         let matrix = vec_space * self.transform_matrix();
+
+        println!("{:#?}", vec_space);
+        println!("{:#?}", matrix);
 
         if let Some(drawable) = &self.drawable {
             drawable.borrow_mut().tbo.set_data_index(matrix, self.model_index);

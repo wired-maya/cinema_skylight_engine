@@ -66,11 +66,16 @@ impl Scene for View3DScene {
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
         self.camera.send_view()?;
+        self.camera.uniform_buffer
+            .as_ref()
+            .expect("Camera should be instantiated with Camera::new()")
+            .bind_ubo();
 
         self.render_pipeline.bind();
         self.model_shader_program.use_program();
 
-        self.world_obj.set_transform_to_drawable(Matrix4::identity());
+        self.world_obj.set_transform_to_drawable(Matrix4::<f32>::identity());
+        println!("{:#?}", Matrix4::<f32>::identity());
         
         // TODO: Find a way to have instanced rendering only render a certain subset of
         // TODO: the transforms for this scene, so that multiple 3D scenes with different

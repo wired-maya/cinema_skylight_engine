@@ -78,7 +78,7 @@ pub trait Widget {
         }
 
         if let Some(texture) = self.get_texture() {
-            quad.meshes[0].diffuse_textures.push(texture);
+            quad.meshes[0].diffuse_textures.push(Rc::clone(texture));
         }
 
         self.send_widget_info(shader_program)?;
@@ -117,7 +117,7 @@ pub trait Widget {
 
     fn traverse_and_set_textures(&self, quad: &mut Model) -> Result<(), EngineError> {
         if let (Some(index), Some(texture)) = (self.get_index(), self.get_texture()) {
-            quad.meshes[0].diffuse_textures[index] = texture;
+            quad.meshes[0].diffuse_textures[index] = Rc::clone(texture);
         } else {
             return Err(EngineError::WidgetIndexMissing());
         }
@@ -162,7 +162,7 @@ pub trait Widget {
     // function
     fn set_texture_send(&self, quad: &mut Model) -> Result<(), EngineError> {
         if let (Some(index), Some(texture)) = (self.get_index(), self.get_texture()) {
-            quad.meshes[0].diffuse_textures[index] = texture;
+            quad.meshes[0].diffuse_textures[index] = Rc::clone(texture);
         } else {
             return Err(EngineError::WidgetIndexMissing());
         }
@@ -174,8 +174,8 @@ pub trait Widget {
     // This should be the only way to set textures, since batching isn't something you need
     // to worry about.
     // Only used for texure primitive widgets
-    fn get_texture(&self) -> Option<Rc<Texture>> { None } // Used for texture primitive widgets
-    fn set_texture(&mut self, texture: Texture) -> Result<(), EngineError> { Err(EngineError::TexturelessWidget(texture.get_id())) }
+    fn get_texture(&self) -> &Option<Rc<Texture>> { &None } // Used for texture primitive widgets
+    fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> { Err(EngineError::TexturelessWidget(texture.get_id())) }
 
     // Needs to be run each frame
     fn traverse_and_send_info(&self, shader_program: &ShaderProgram) -> Result<(), EngineError> {

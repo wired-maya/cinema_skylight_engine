@@ -109,6 +109,10 @@ impl Scene for Widget2dScene {
         unsafe { gl::Disable(gl::DEPTH_TEST) };
 
         self.camera.send_view()?;
+        self.camera.uniform_buffer
+            .as_ref()
+            .expect("Camera should be instantiated with Camera::new()")
+            .bind_ubo();
 
         self.render_pipeline.bind();
         self.widget_shader_program.use_program();

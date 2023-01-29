@@ -83,7 +83,7 @@ impl Camera {
         let uniform_buffer = UniformBuffer::new(
             shader_programs,
             "CameraMatrices",
-            2 * std::mem::size_of::<Matrix4<f32>>() as u32
+            2 * std::mem::size_of::<Matrix4<f32>>() as isize
         )?;
 
         camera.uniform_buffer = Some(uniform_buffer);
