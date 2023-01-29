@@ -7,7 +7,8 @@ pub struct Widget2dScene {
     pub widget_quad: Model,
     pub widget_shader_program: Rc<ShaderProgram>,
     pub render_pipeline: Box<dyn RenderPipeline>,
-    pub top_widget: BackgroundWidget, // TODO: Should become widget box
+    // TODO: Maybe make this an array?
+    pub top_widget: BackgroundWidget, // TODO: Should become widget box (also rename to child)
     pub camera: Camera,
     
 }
@@ -66,7 +67,8 @@ impl Widget2dScene {
     }
 
     pub fn set_widget_transforms(&mut self) -> Result<(), EngineError> {
-        self.top_widget.traverse_and_set_transforms(&mut self.widget_quad)?;
+        // TODO: This needs to follow vec space
+        self.top_widget.traverse_and_set_transforms(&mut self.widget_quad, Matrix4::identity())?;
         self.widget_quad.tbo.send_data_mut();
 
         Ok(())

@@ -30,8 +30,11 @@ impl Default for BackgroundWidget {
 
 impl Widget for BackgroundWidget {
     fn get_position(&self) -> Vector2<f32> { self.position }
+    fn set_position(&mut self, pos: Vector2<f32>) { self.position = pos }
     fn get_rotation(&self) -> cgmath::Quaternion<f32> { self.rotation }
+    fn set_rotation(&mut self, rot: Quaternion<f32>) { self.rotation = rot }
     fn get_size(&self) -> (f32, f32) { (self.width, self.height) }
+    fn set_size(&mut self, width: f32, height: f32) { self.width = width; self.height = height }
     fn get_children(&self) -> &Vec<Box<dyn Widget>> { &self.children }
     fn get_children_mut(&mut self) -> &mut Vec<Box<dyn Widget>> { &mut self.children }
     fn get_index(&self) -> Option<usize> { self.index }

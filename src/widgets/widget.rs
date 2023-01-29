@@ -30,11 +30,15 @@ use crate::EngineError;
 // TODO: just be as simple as drawing the one quad, with all textures bound in the correct order.
 pub trait Widget {
     fn get_position(&self) -> Vector2<f32>;
+    fn set_position(&mut self, pos: Vector2<f32>);
     fn get_rotation(&self) -> Quaternion<f32>;
+    fn set_rotation(&mut self, rot: Quaternion<f32>);
     fn get_size(&self) -> (f32, f32);
-    fn get_texture(&self) -> Option<Rc<Texture>> { None } // Used for texture primitive widgets
+    fn set_size(&mut self, width: f32, height: f32);
     fn get_children(&self) -> &Vec<Box<dyn Widget>>;
     fn get_children_mut(&mut self) -> &mut Vec<Box<dyn Widget>>;
+
+    // Calculates transform matrix for the vertex shader
     fn transform_matrix(&self) -> Matrix4<f32> {
         let pos = self.get_position();
         let mut matrix = Matrix4::<f32>::from_translation(vec3(pos.x, pos.y, 0.0));
@@ -91,17 +95,21 @@ pub trait Widget {
     // To Used to batch together transforms
     // This is meant to to be run with a send_data afterwards, since it's to batch
     // transforms
-    fn traverse_and_set_transforms(&self, quad: &mut Model) -> Result<(), EngineError> {
+    fn traverse_and_set_transforms(&mut self, quad: &mut Model, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
+        self.set_vec_space(vec_space);
+
+        let matrix = self.transform_matrix();
+
         if let Some(index) = self.get_index() {
             unsafe {
-                quad.tbo.set_data_index_inner(self.transform_matrix(), index);
+                quad.tbo.set_data_index_inner(matrix, index);
             }
         } else {
             return Err(EngineError::WidgetIndexMissing());
         }
 
-        for widget in self.get_children() {
-            widget.traverse_and_set_transforms(quad)?;
+        for widget in self.get_children_mut() {
+            widget.traverse_and_set_transforms(quad, matrix)?;
         }
         
         Ok(())
@@ -166,6 +174,7 @@ pub trait Widget {
     // This should be the only way to set textures, since batching isn't something you need
     // to worry about.
     // Only used for texure primitive widgets
+    fn get_texture(&self) -> Option<Rc<Texture>> { None } // Used for texture primitive widgets
     fn set_texture(&mut self, texture: Texture) -> Result<(), EngineError> { Err(EngineError::TexturelessWidget(texture.get_id())) }
 
     // Needs to be run each frame
