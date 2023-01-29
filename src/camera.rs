@@ -11,15 +11,17 @@ pub enum CameraMovement {
     DOWN
 }
 
+#[derive(Clone, Copy)]
 pub enum CameraProjection {
     PERSPECTIVE,
     ORTHO
 }
 
+#[derive(Clone, Copy)]
 pub struct CameraSize {
     pub width: i32,
     pub height: i32,
-    pub fov: f32,
+    pub fov: f32
 }
 
 // TODO: Move render pipeline here, so that cameras handle most of the shader, letting them
@@ -73,11 +75,12 @@ impl Default for Camera {
 }
 
 impl Camera {
-    pub fn new(width: i32, height: i32, fov: f32, shader_programs: Vec<&ShaderProgram>) -> Result<Camera, GlError> {
+    pub fn new(camera_size: CameraSize, proj: CameraProjection, shader_programs: Vec<&ShaderProgram>) -> Result<Camera, GlError> {
         let mut camera = Camera {
-            width: width as f32,
-            height: height as f32,
-            fov,
+            width: camera_size.width as f32,
+            height: camera_size.height as f32,
+            fov: camera_size.fov,
+            projection: proj,
             ..Default::default()
         };
         let uniform_buffer = UniformBuffer::new(

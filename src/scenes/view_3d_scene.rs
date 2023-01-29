@@ -3,8 +3,6 @@ use cgmath::{Matrix4, SquareMatrix};
 use silver_gl::{Model, Skybox, ShaderProgram, RenderPipeline};
 use crate::{Camera, GameObject, CameraSize, ShaderPathBundle, ResourceManager, EngineError, Scene};
 
-// TODO: Once moved to engine, switch to using gameobjects. Resource manager can then handle
-// TODO: drawing maybe?
 // TODO: add lights, need a light trait
 // TODO: See if qsort is fast enough that  to allow me to sort models based on distance from the camera every frame, enabling transparency
 pub struct View3DScene {
@@ -32,9 +30,8 @@ impl View3DScene {
         let skybox = resource_manager.load_skybox(skybox_path)?;
 
         let camera = Camera::new(
-            camera_bundle.width,
-            camera_bundle.height,
-            camera_bundle.fov,
+            camera_bundle,
+            crate::CameraProjection::PERSPECTIVE,
             vec![&model_shader_program, &skybox_shader_program]
         )?;
         
@@ -75,7 +72,6 @@ impl Scene for View3DScene {
         self.model_shader_program.use_program();
 
         self.world_obj.set_transform_to_drawable(Matrix4::<f32>::identity());
-        println!("{:#?}", Matrix4::<f32>::identity());
         
         // TODO: Find a way to have instanced rendering only render a certain subset of
         // TODO: the transforms for this scene, so that multiple 3D scenes with different
