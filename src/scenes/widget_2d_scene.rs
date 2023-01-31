@@ -1,7 +1,7 @@
 use std::{rc::Rc};
 use cgmath::{Matrix4, SquareMatrix};
 use silver_gl::{RenderPipeline, Model, ShaderProgram};
-use crate::{Camera, EngineError, ResourceManager, ShaderPathBundle, CameraSize, create_wquad, Widget, Scene, CameraProjection};
+use crate::{Camera, EngineError, ResourceManager, ShaderPathBundle, CameraSize, create_wquad, Widget, Scene, CameraProjection, primitives::PrimitiveCounter};
 
 pub struct Widget2dScene {
     pub widget_quad: Model,
@@ -9,7 +9,7 @@ pub struct Widget2dScene {
     pub render_pipeline: Box<dyn RenderPipeline>,
     pub widget: Box<dyn Widget>,
     pub camera: Camera,
-    
+    primitive_count: PrimitiveCounter
 }
 
 impl Widget2dScene {
@@ -33,7 +33,8 @@ impl Widget2dScene {
                 widget_shader_program,
                 render_pipeline,
                 widget,
-                camera
+                camera,
+                primitive_count: PrimitiveCounter::default()
             }
         )
     }
@@ -44,9 +45,12 @@ impl Widget2dScene {
         self.widget_quad.meshes[0].diffuse_textures.clear();
         unsafe { self.widget_quad.tbo.clear_inner() };
 
+        // Reset primitive counter
+        self.primitive_count = PrimitiveCounter::default();
+
         // Recursively set all widget info
         self.widget_shader_program.use_program();
-        self.widget.traverse_and_push_all(&mut self.widget_quad, &self.widget_shader_program, Matrix4::identity())?;
+        self.widget.traverse_and_push_all(&mut self.widget_quad, &self.widget_shader_program, Matrix4::identity(), &mut self.primitive_count)?;
 
         // Finally send the batched transforms
         self.widget_quad.tbo.send_data_mut();
@@ -68,9 +72,12 @@ impl Widget2dScene {
         Ok(())
     }
 
-    pub fn send_widget_info(&self) -> Result<(), EngineError> {
-        self.widget_shader_program.use_program();
-        self.widget.traverse_and_send_info(&self.widget_shader_program)?;
+    // Requires shader program use
+    pub fn send_widget_info(&mut self) -> Result<(), EngineError> {
+        // Reset primitive counter
+        self.primitive_count = PrimitiveCounter::default();
+
+        self.widget.traverse_and_send_info(&self.widget_shader_program, &mut self.primitive_count)?;
 
         Ok(())
     }

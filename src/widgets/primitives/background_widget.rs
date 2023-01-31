@@ -2,6 +2,8 @@ use cgmath::{Vector4, Quaternion, Matrix4, SquareMatrix, Vector2};
 use crate::{Widget, EngineError};
 use silver_gl::ShaderProgram;
 
+use super::PrimitiveType;
+
 pub struct BackgroundWidget {
     pub colour: Vector4<f32>,
     pub position: Vector2<f32>,
@@ -42,10 +44,17 @@ impl Widget for BackgroundWidget {
     fn get_vec_space(&self) -> cgmath::Matrix4<f32> { self.vec_space }
     fn set_vec_space(&mut self, vec_space: cgmath::Matrix4<f32>) { self.vec_space = vec_space }
 
-    fn send_widget_info(&self, shader_program: &ShaderProgram) -> Result<(), crate::EngineError> {
+    fn send_widget_info(&self, shader_program: &ShaderProgram, counter: &mut super::PrimitiveCounter) -> Result<(), EngineError> {
         if let Some(index) = self.index {
-            let name = format!("BackgroundWidgets[{}]", index);
-            shader_program.set_vector_4(name.as_str(), &self.colour)?;
+            let widget_type_str = format!("widgets[{}].type", index);
+            let widget_index_str = format!("widgets[{}].index", index);
+            let primitive_str = format!("backgroundWidgets[{}]", counter.background_num);
+            
+            shader_program.set_int(&widget_type_str, PrimitiveType::Background as i32)?;
+            shader_program.set_int(&widget_index_str, counter.background_num)?;
+            shader_program.set_vector_4(&primitive_str, &self.colour)?;
+
+            counter.background_num += 1;
         } else {
             return Err(EngineError::WidgetIndexMissing());
         }

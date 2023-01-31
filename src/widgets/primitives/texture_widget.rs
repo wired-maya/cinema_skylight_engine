@@ -3,7 +3,9 @@ use std::rc::Rc;
 use cgmath::{Vector2, Quaternion, Matrix4, SquareMatrix};
 use silver_gl::Texture;
 
-use crate::Widget;
+use crate::{Widget, EngineError};
+
+use super::PrimitiveType;
 
 pub struct TextureWidget {
     pub position: Vector2<f32>,
@@ -47,7 +49,19 @@ impl Widget for TextureWidget {
     fn get_texture(&self) -> &Option<std::rc::Rc<silver_gl::Texture>> { &self.texture }
     fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), crate::EngineError> { Ok(self.texture = Some(texture)) }
 
-    fn send_widget_info(&self, _: &silver_gl::ShaderProgram) -> Result<(), crate::EngineError> {
+    fn send_widget_info(&self, shader_program: &silver_gl::ShaderProgram, counter: &mut super::PrimitiveCounter) -> Result<(), crate::EngineError> {
+        if let Some(index) = self.index {
+            let widget_type_str = format!("widgets[{}].type", index);
+            let widget_index_str = format!("widgets[{}].index", index);
+                        
+            shader_program.set_int(&widget_type_str, PrimitiveType::Texture as i32)?;
+            shader_program.set_int(&widget_index_str, counter.texture_num)?;
+
+            counter.texture_num += 1;
+        } else {
+            return Err(EngineError::WidgetIndexMissing());
+        }
+
         Ok(())
     }
 }

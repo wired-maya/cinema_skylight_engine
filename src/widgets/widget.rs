@@ -3,7 +3,7 @@ use std::rc::Rc;
 use cgmath::{Quaternion, Matrix4, Vector2, vec3};
 use silver_gl::{Model, Texture, ShaderProgram};
 
-use crate::EngineError;
+use crate::{EngineError, primitives::PrimitiveCounter};
 
 // TODO: Widgets are similar to gameobjects, where they can store a sub-widget that is relative to
 // TODO: its parent. This is mainly going to be used to compose widgets from primitive widgets,
@@ -59,7 +59,7 @@ pub trait Widget {
     fn set_vec_space(&mut self, vec_space: Matrix4<f32>);
 
     // Send visual properties of the widget to shader program
-    fn send_widget_info(&self, shader_program: &ShaderProgram) -> Result<(), EngineError>;
+    fn send_widget_info(&self, shader_program: &ShaderProgram, counter: &mut PrimitiveCounter) -> Result<(), EngineError>;
 
     // Traverses tree in linearized order, pushing the widgets' information to the quad
     // Assumes that clear_inner has been run on the tbo and clear has been run on the
@@ -67,7 +67,13 @@ pub trait Widget {
     // program is bound.
     // Panics if there are less than 1 meshes in quad.
     // Needs to be run when widget tree is changed
-    fn traverse_and_push_all(&mut self, quad: &mut Model, shader_program: &ShaderProgram, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
+    fn traverse_and_push_all(
+        &mut self,
+        quad: &mut Model,
+        shader_program: &ShaderProgram,
+        vec_space: Matrix4<f32>,
+        counter: &mut PrimitiveCounter
+    ) -> Result<(), EngineError> {
         self.set_index(Some(quad.tbo.len()));
         self.set_vec_space(vec_space);
         
@@ -81,10 +87,10 @@ pub trait Widget {
             quad.meshes[0].diffuse_textures.push(Rc::clone(texture));
         }
 
-        self.send_widget_info(shader_program)?;
+        self.send_widget_info(shader_program, counter)?;
 
         for widget in self.get_children_mut() {
-            widget.traverse_and_push_all(quad, shader_program, matrix)?;
+            widget.traverse_and_push_all(quad, shader_program, matrix, counter)?;
         }
 
         Ok(())
@@ -178,11 +184,11 @@ pub trait Widget {
     fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> { Err(EngineError::TexturelessWidget(texture.get_id())) }
 
     // Needs to be run each frame
-    fn traverse_and_send_info(&self, shader_program: &ShaderProgram) -> Result<(), EngineError> {
-        self.send_widget_info(shader_program)?;
+    fn traverse_and_send_info(&self, shader_program: &ShaderProgram, counter: &mut PrimitiveCounter) -> Result<(), EngineError> {
+        self.send_widget_info(shader_program, counter)?;
 
         for widget in self.get_children() {
-            widget.traverse_and_send_info(shader_program)?;
+            widget.traverse_and_send_info(shader_program, counter)?;
         }
 
         Ok(())
