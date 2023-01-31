@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use cgmath::{Quaternion, Matrix4, Vector2, vec3};
+use cgmath::{Quaternion, Matrix4, Vector2, vec3, vec4, SquareMatrix};
 use silver_gl::{Model, Texture, ShaderProgram};
 
 use crate::{EngineError, primitives::PrimitiveCounter};
@@ -44,10 +44,30 @@ pub trait Widget {
         let mut matrix = Matrix4::<f32>::from_translation(vec3(pos.x, pos.y, 0.0));
         let (width, height) = self.get_size();
         matrix = matrix * Matrix4::<f32>::from_nonuniform_scale(width, height, 1.0);
+        // TODO: Add option to change where the widget is rotated from
         matrix = matrix * Matrix4::<f32>::from(self.get_rotation());
         matrix = self.get_vec_space() * matrix;
         
         matrix
+    }
+    
+    // Transforms current size to pixels
+    fn get_size_pixels(&self) -> (f32, f32) {
+        let (width, height) = self.get_size();
+        let mut size_vec = vec4(width, height, 0.0, 1.0);
+
+        size_vec = self.get_vec_space() * size_vec;
+
+        (size_vec.x, size_vec.y)
+    }
+
+    fn set_size_pixels(&mut self, width: f32, height: f32) {
+        let mut size_vec = vec4(width, height, 0.0, 1.0);
+
+        let inverted_vec_space = self.get_vec_space().invert().expect("Transformation matrix should be invertible");
+        size_vec = inverted_vec_space * size_vec;
+
+        self.set_size(size_vec.x, size_vec.y)
     }
 
     // These are used to optimize changing textures and transforms
