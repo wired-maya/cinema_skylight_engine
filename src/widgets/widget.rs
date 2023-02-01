@@ -28,6 +28,9 @@ use crate::{EngineError, primitives::PrimitiveCounter};
 // TODO: is modified, a function traverses the widget tree, orders them all in a Vec, and
 // TODO: transforms each widget an equal distance between [0.0, -1.0] on z. Drawing will then
 // TODO: just be as simple as drawing the one quad, with all textures bound in the correct order.
+
+// TODO: when doing compound widgets, add a padding value which will just be added to the position and taken
+// TODO: off from the width and height * 2
 pub trait Widget {
     fn get_position(&self) -> Vector2<f32>;
     fn set_position(&mut self, pos: Vector2<f32>);
