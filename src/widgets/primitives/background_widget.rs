@@ -1,7 +1,6 @@
 use cgmath::{Vector4, Quaternion, Matrix4, SquareMatrix, Vector2};
 use crate::{Widget, EngineError};
 use silver_gl::ShaderProgram;
-
 use super::PrimitiveType;
 
 pub struct BackgroundWidget {
