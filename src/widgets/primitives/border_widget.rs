@@ -5,7 +5,7 @@ use super::PrimitiveType;
 
 pub struct BorderWidget {
     pub colour: Vector4<f32>,
-    pub border_width: f32,
+    pub border_widths: Vector4<f32>, // Left, Right, Top, Bottom
     pub position: Vector2<f32>,
     pub rotation: Quaternion<f32>,
     pub width: f32,
@@ -26,7 +26,7 @@ impl Default for BorderWidget {
             children: Default::default(),
             index: None,
             vec_space: Matrix4::<f32>::identity(),
-            border_width: Default::default()
+            border_widths: Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0),
         }
     }
 }
@@ -49,15 +49,15 @@ impl Widget for BorderWidget {
         if let Some(index) = self.index {
             let widget_type_str = format!("widgets[{}].type", index);
             let widget_index_str = format!("widgets[{}].index", index);
-            let primitive_colour_str = format!("borderWidgets[{}].colour", counter.background_num);
-            let primitive_width_str = format!("borderWidgets[{}].width", counter.background_num);
+            let primitive_colour_str = format!("borderWidgets[{}].colour", counter.border_num);
+            let primitive_width_str = format!("borderWidgets[{}].widths", counter.border_num);
             
             shader_program.set_int(&widget_type_str, PrimitiveType::Border as i32)?;
-            shader_program.set_int(&widget_index_str, counter.background_num)?;
+            shader_program.set_int(&widget_index_str, counter.border_num)?;
             shader_program.set_vector_4(&primitive_colour_str, &self.colour)?;
-            shader_program.set_float(&primitive_width_str, self.border_width)?;
+            shader_program.set_vector_4(&primitive_width_str, &self.border_widths)?;
 
-            counter.background_num += 1;
+            counter.border_num += 1;
         } else {
             return Err(EngineError::WidgetIndexMissing());
         }
