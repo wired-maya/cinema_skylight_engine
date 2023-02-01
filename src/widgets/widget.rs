@@ -31,6 +31,12 @@ use crate::{EngineError, primitives::PrimitiveCounter};
 
 // TODO: when doing compound widgets, add a padding value which will just be added to the position and taken
 // TODO: off from the width and height * 2
+
+// TODO: Composite widgets might have a composite trait that can get stuff like padding, the primitives, etc.
+// TODO: Could also be called framed widgets?
+// TODO: They would hold the children separately (e.g. frame widget prop, etc), allowing functions and users
+// TODO: to easier modify visual aspects of the widgets.
+// TODO: Override defaults to make this work.
 pub trait Widget {
     fn get_position(&self) -> Vector2<f32>;
     fn set_position(&mut self, pos: Vector2<f32>);
