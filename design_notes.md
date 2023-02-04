@@ -308,6 +308,7 @@ wonderful weather we are having, huh
 - Force multi-line text blocks would be written surrounded with "" (This would override word wrapping on >1 height text widgets)
 - You can do multiple things are once by wrapping them in curly braces
 - Has header with window size and other information
+- There must be support for constant declaration (which will be find and replaced during parsing) so you can repeat themes less, etc
 
 ## Visual Editor
 

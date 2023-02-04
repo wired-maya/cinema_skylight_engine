@@ -1,8 +1,8 @@
 use std::rc::Rc;
 use cgmath::{Vector2, Quaternion, Matrix4, SquareMatrix};
-use silver_gl::Texture;
+use silver_gl::{Texture, ShaderProgram};
 use crate::{Widget, EngineError};
-use super::PrimitiveType;
+use super::{PrimitiveType, PrimitiveCounter};
 
 pub struct TextureWidget {
     pub position: Vector2<f32>,
@@ -20,8 +20,8 @@ impl Default for TextureWidget {
         Self {
             position: Vector2::<f32>::new(0.0, 0.0),
             rotation: Quaternion::<f32>::new(1.0, 0.0, 0.0, 0.0),
-            width: Default::default(),
-            height: Default::default(),
+            width: 1.0,
+            height: 1.0,
             children: Default::default(),
             index: None,
             vec_space: Matrix4::<f32>::identity(),
@@ -33,7 +33,7 @@ impl Default for TextureWidget {
 impl Widget for TextureWidget {
     fn get_position(&self) -> Vector2<f32> { self.position }
     fn set_position(&mut self, pos: Vector2<f32>) { self.position = pos }
-    fn get_rotation(&self) -> cgmath::Quaternion<f32> { self.rotation }
+    fn get_rotation(&self) -> Quaternion<f32> { self.rotation }
     fn set_rotation(&mut self, rot: Quaternion<f32>) { self.rotation = rot }
     fn get_size(&self) -> (f32, f32) { (self.width, self.height) }
     fn set_size(&mut self, width: f32, height: f32) { self.width = width; self.height = height }
@@ -41,12 +41,12 @@ impl Widget for TextureWidget {
     fn get_children_mut(&mut self) -> &mut Vec<Box<dyn Widget>> { &mut self.children }
     fn get_index(&self) -> Option<usize> { self.index }
     fn set_index(&mut self, i: Option<usize>) { self.index = i }
-    fn get_vec_space(&self) -> cgmath::Matrix4<f32> { self.vec_space }
-    fn set_vec_space(&mut self, vec_space: cgmath::Matrix4<f32>) { self.vec_space = vec_space }
-    fn get_texture(&self) -> &Option<std::rc::Rc<silver_gl::Texture>> { &self.texture }
-    fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), crate::EngineError> { Ok(self.texture = Some(texture)) }
+    fn get_vec_space(&self) -> Matrix4<f32> { self.vec_space }
+    fn set_vec_space(&mut self, vec_space: Matrix4<f32>) { self.vec_space = vec_space }
+    fn get_texture(&self) -> &Option<Rc<Texture>> { &self.texture }
+    fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> { Ok(self.texture = Some(texture)) }
 
-    fn send_widget_info(&self, shader_program: &silver_gl::ShaderProgram, counter: &mut super::PrimitiveCounter) -> Result<(), crate::EngineError> {
+    fn send_widget_info(&self, shader_program: &ShaderProgram, counter: &mut PrimitiveCounter) -> Result<(), EngineError> {
         if let Some(index) = self.index {
             let widget_type_str = format!("widgets[{}].type", index);
             let widget_index_str = format!("widgets[{}].index", index);

@@ -9,7 +9,8 @@ pub enum EngineError {
     IoError(std::io::Error),
     GlError(GlError),
     WidgetIndexMissing(),
-    TexturelessWidget(u32)
+    TexturelessWidget(u32),
+    WidgetNotPrimitive(),
 }
 
 // TODO: Write errors that suggest a solution as well
@@ -21,7 +22,8 @@ impl Display for EngineError {
             EngineError::IoError(io_err) => write!(f, "{}", io_err),
             EngineError::GlError(gl_err) => write!(f, "{}", gl_err),
             EngineError::WidgetIndexMissing() => write!(f, "The index for this widget does not exist.\nThis occurs when you haven't run traverse_and_push() after modifying the widget tree"),
-            EngineError::TexturelessWidget(id) => write!(f, "This widget does not take a texuture, yet the texture {id} was provided", )
+            EngineError::TexturelessWidget(id) => write!(f, "This widget does not take a texuture, yet the texture {id} was provided", ),
+            EngineError::WidgetNotPrimitive() => write!(f, "This is a compound widget and therefore its transform cannot be set manually. Please use the traverse_and_*() functions")
         }
     }
 }

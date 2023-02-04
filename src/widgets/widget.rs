@@ -1,33 +1,8 @@
 use std::rc::Rc;
-
 use cgmath::{Quaternion, Matrix4, Vector2, vec3, vec4, SquareMatrix};
+use downcast_rs::{Downcast, impl_downcast};
 use silver_gl::{Model, Texture, ShaderProgram};
-
 use crate::{EngineError, primitives::PrimitiveCounter};
-
-// TODO: Widgets are similar to gameobjects, where they can store a sub-widget that is relative to
-// TODO: its parent. This is mainly going to be used to compose widgets from primitive widgets,
-// TODO: for example a TextBoxWidget will be a BackgroundWidget holding a text widget and
-// TODO: a border widget. Each widget will have an array of sub-widgets allowed (just like
-// TODO: the gameobjects), and will be rendered in the following order: Back-most first,
-// TODO: then the first child, its children, and the next child, and so on. All widgets will
-// TODO: be stored in a top-level widget, same with the game objects.
-// TODO: For example with this rendering, say you have a top-level background widget, with two
-// TODO: textboxes. The tree is as follows:
-// TODO: Background (top-level) -> TextBox1 (empty container widget) -> Background1 -> Text1
-// TODO:                                                                            -> Border1
-// TODO:                        -> TextBox2 -> Background2 -> Text2
-// TODO:                                                   -> Border2
-// TODO: This will be rendered in the following order, from bottom to top visually (primitive
-// TODO: widgets are only rendered as the rest are just empty containers for organization):
-// TODO: Background (top-level) -> Background1 -> Text1 -> Border1 -> Background2 -> Text2 -> Border2
-// TODO: These will be held in a View2dScene which holds a WidgetQuad (the shape all widgets are
-// TODO: based on, technically could be any shape if you want to get creative since it will hold
-// TODO: a model), which has a bunch of transforms and draws the primitive widgets with instanced
-// TODO: rendering. To achieve the proper render order without Z-fighting, each time the widget tree
-// TODO: is modified, a function traverses the widget tree, orders them all in a Vec, and
-// TODO: transforms each widget an equal distance between [0.0, -1.0] on z. Drawing will then
-// TODO: just be as simple as drawing the one quad, with all textures bound in the correct order.
 
 // TODO: when doing compound widgets, add a padding value which will just be added to the position and taken
 // TODO: off from the width and height * 2
@@ -37,11 +12,27 @@ use crate::{EngineError, primitives::PrimitiveCounter};
 // TODO: They would hold the children separately (e.g. frame widget prop, etc), allowing functions and users
 // TODO: to easier modify visual aspects of the widgets.
 // TODO: Override defaults to make this work.
-pub trait Widget {
+
+// TODO: To create a kind of crosshair widget that follows a point (to make animating in widgets cool),
+// TODO: have a widget (child of top-level widget, preferably on the bottom of the vec so it draws
+// TODO: over everything else) that is a new type of primitive widget. Its main (most likely only)
+// TODO: properties will be widths and colours of all 4 lines (+/- x/y), a length, where they are
+// TODO: centered (with offset), all allowing pixel sizes as well. All these options should allow
+// TODO: fairly complex animations for drawing in widgets.
+// TODO: Possibly have a composite helper widget that creates and destroys crosshair widgets to allow
+// TODO: for dead simple support of animating in multiple widgets. Takes a definition of the animation,
+// TODO: when initialized, then to animate the crosshair takes position and done value in [0,1].
+
+// TODO: Create a system where you have a target aspect ratio (for example 16:9), and then the screen
+// TODO: will be divided up into "dots", mimicing screen-resolution in its function. Resolution can
+// TODO: can be set when creating the engine. An example would be 16:9 aspect ratio with 100 resolution,
+// TODO: resulting in dots of 1600x900, which would remain constant no matter the screen resolution.
+pub trait Widget: Downcast {
     fn get_position(&self) -> Vector2<f32>;
     fn set_position(&mut self, pos: Vector2<f32>);
     fn get_rotation(&self) -> Quaternion<f32>;
     fn set_rotation(&mut self, rot: Quaternion<f32>);
+    // TODO: Add size struct, with all the pixel things
     fn get_size(&self) -> (f32, f32);
     fn set_size(&mut self, width: f32, height: f32);
     fn get_children(&self) -> &Vec<Box<dyn Widget>>;
@@ -78,6 +69,8 @@ pub trait Widget {
 
         self.set_size(size_vec.x, size_vec.y)
     }
+
+    // TODO: Set/get position in pixels
 
     // These are used to optimize changing textures and transforms
     fn get_index(&self) -> Option<usize>;
@@ -223,3 +216,8 @@ pub trait Widget {
         Ok(())
     }
 }
+
+// Instead of using an enum to remove downcasting, this allows for a new widget
+// to be created by anyone who uses the engine.
+// A third party crate is used here for more flexibility with downcasting
+impl_downcast!(Widget);

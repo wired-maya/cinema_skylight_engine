@@ -28,7 +28,8 @@ impl EngineWindow {
         window.set_framebuffer_size_polling(true);
         window.set_cursor_pos_polling(true);
         window.set_scroll_polling(true);
-        window.set_cursor_mode(glfw::CursorMode::Disabled);
+        // TODO: Temporary
+        // window.set_cursor_mode(glfw::CursorMode::Disabled);
 
         // Move into struct for easy referencing
         EngineWindow { glfw, events, window }
