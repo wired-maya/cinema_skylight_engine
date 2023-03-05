@@ -1,6 +1,6 @@
 use cgmath::{Vector2, Quaternion, Matrix4, SquareMatrix, Vector4};
-use silver_gl::{ShaderProgram, Model};
-use crate::{Widget, primitives::{BorderWidget, BackgroundWidget, TextureWidget, PrimitiveCounter}, EngineError, FramedWidget, ResourceManager};
+use silver_gl::{ShaderProgram};
+use crate::{Widget, primitives::{BorderWidget, BackgroundWidget, TextureWidget}, EngineError, FramedWidget, ResourceManager, widget_model::WModel};
 
 pub struct PictureWidget {
     pub position: Vector2<f32>,
@@ -27,10 +27,7 @@ impl Default for PictureWidget {
                     height: 0.88,
                     ..Default::default()
                 }),
-                Box::new(BorderWidget {
-                    border_widths: Vector4::<f32>::new(0.01, 0.01, 0.01, 0.01),
-                    ..Default::default()
-                })
+                Box::new(BorderWidget::default())
             ],
             vec_space: Matrix4::<f32>::identity(),
             padding: Vector4::<f32>::new(0.05, 0.05, 0.05, 0.05)
@@ -53,10 +50,7 @@ impl PictureWidget {
                         height: 0.88,
                         ..Default::default()
                     }),
-                    Box::new(BorderWidget {
-                        border_widths: Vector4::<f32>::new(0.01, 0.01, 0.01, 0.01),
-                        ..Default::default()
-                    })
+                    Box::new(BorderWidget::default())
                 ],
                 ..Default::default()
             }
@@ -85,28 +79,25 @@ impl Widget for PictureWidget {
     fn get_vec_space(&self) -> Matrix4<f32> { self.vec_space }
     fn set_vec_space(&mut self, vec_space: Matrix4<f32>) { self.vec_space = vec_space }
 
-    fn send_widget_info(&self, _: &ShaderProgram, _: &mut PrimitiveCounter) -> Result<(), EngineError> { Ok(()) }
-
     // Composite widgets only hold primitives and their vector space, so it doesn't
     // send anything to the quad
     fn traverse_and_push_all(
         &mut self,
-        quad: &mut Model,
+        quad: &mut WModel,
         shader_program: &ShaderProgram,
-        vec_space: Matrix4<f32>,
-        counter: &mut PrimitiveCounter
+        vec_space: Matrix4<f32>
     ) -> Result<(), EngineError> {
         self.set_vec_space(vec_space);
         let matrix = self.transform_matrix();
 
         for widget in self.get_children_mut() {
-            widget.traverse_and_push_all(quad, shader_program, matrix, counter)?;
+            widget.traverse_and_push_all(quad, shader_program, matrix)?;
         }
 
         Ok(())
     }
 
-    fn traverse_and_set_transforms(&mut self, quad: &mut Model, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
+    fn traverse_and_set_transforms(&mut self, quad: &mut WModel, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
         self.set_vec_space(vec_space);
         let matrix = self.transform_matrix();
 
@@ -117,15 +108,15 @@ impl Widget for PictureWidget {
         Ok(())
     }
 
-    fn traverse_and_set_textures(&self, quad: &mut Model) -> Result<(), EngineError> {
-        for widget in self.get_children() {
-            widget.traverse_and_set_textures(quad)?;
+    fn traverse_and_send_info(&mut self, quad: &mut WModel) -> Result<(), EngineError> {
+        for widget in self.get_children_mut() {
+            widget.traverse_and_send_info(quad)?;
         }
-        
+
         Ok(())
     }
 
-    fn set_transform(&self, _: &mut Model) -> Result<(), EngineError> { Err(EngineError::WidgetNotPrimitive()) }
-    fn set_transform_send(&self, _: &mut Model) -> Result<(), EngineError> { Err(EngineError::WidgetNotPrimitive()) }
-    fn set_texture_send(&self, _: &mut Model) -> Result<(), EngineError> { Err(EngineError::WidgetNotPrimitive()) }
+    fn widget_info(&mut self) -> Vec<u8> { Vec::new() }
+    fn set_transform(&self, _: &mut WModel) -> Result<(), EngineError> { Err(EngineError::WidgetNotPrimitive()) }
+    fn set_transform_send(&self, _: &mut WModel) -> Result<(), EngineError> { Err(EngineError::WidgetNotPrimitive()) }
 }

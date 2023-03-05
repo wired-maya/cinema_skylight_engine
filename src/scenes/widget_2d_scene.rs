@@ -1,15 +1,14 @@
 use std::{rc::Rc};
 use cgmath::{Matrix4, SquareMatrix};
-use silver_gl::{RenderPipeline, Model, ShaderProgram};
-use crate::{Camera, EngineError, ResourceManager, ShaderPathBundle, CameraSize, create_wquad, Widget, Scene, CameraProjection, primitives::PrimitiveCounter};
+use silver_gl::{RenderPipeline, ShaderProgram};
+use crate::{Camera, EngineError, ResourceManager, ShaderPathBundle, CameraSize, create_wquad, Widget, Scene, CameraProjection, widget_model::WModel};
 
 pub struct Widget2dScene {
-    pub widget_quad: Model,
+    pub widget_quad: WModel,
     pub widget_shader_program: Rc<ShaderProgram>,
     pub render_pipeline: Box<dyn RenderPipeline>,
     pub widget: Box<dyn Widget>,
-    pub camera: Camera,
-    primitive_count: PrimitiveCounter
+    pub camera: Camera
 }
 
 impl Widget2dScene {
@@ -33,8 +32,7 @@ impl Widget2dScene {
                 widget_shader_program,
                 render_pipeline,
                 widget,
-                camera,
-                primitive_count: PrimitiveCounter::default()
+                camera
             }
         )
     }
@@ -42,18 +40,18 @@ impl Widget2dScene {
     // All in one functions to simplify the recusive widget-specific function
     pub fn set_widget_tree(&mut self) -> Result<(), EngineError> {
         // Clear all quad props
-        self.widget_quad.meshes[0].diffuse_textures.clear();
-        unsafe { self.widget_quad.tbo.clear_inner() };
-
-        // Reset primitive counter
-        self.primitive_count = PrimitiveCounter::default();
+        unsafe {
+            self.widget_quad.tbo.clear_inner();
+            self.widget_quad.dbo.clear_inner();
+        };
 
         // Recursively set all widget info
         self.widget_shader_program.use_program();
-        self.widget.traverse_and_push_all(&mut self.widget_quad, &self.widget_shader_program, Matrix4::identity(), &mut self.primitive_count)?;
+        self.widget.traverse_and_push_all(&mut self.widget_quad, &self.widget_shader_program, Matrix4::identity())?;
 
         // Finally send the batched transforms
         self.widget_quad.tbo.send_data_mut();
+        self.widget_quad.dbo.send_data_mut();
 
         Ok(())
     }
@@ -65,19 +63,9 @@ impl Widget2dScene {
         Ok(())
     }
 
-    pub fn set_widget_textures(&mut self) -> Result<(), EngineError> {
-        self.widget_quad.meshes[0].diffuse_textures.clear();
-        self.widget.traverse_and_set_textures(&mut self.widget_quad)?;
-
-        Ok(())
-    }
-
     // Requires shader program use
     pub fn send_widget_info(&mut self) -> Result<(), EngineError> {
-        // Reset primitive counter
-        self.primitive_count = PrimitiveCounter::default();
-
-        self.widget.traverse_and_send_info(&self.widget_shader_program, &mut self.primitive_count)?;
+        self.widget.traverse_and_send_info(&mut self.widget_quad)?;
 
         Ok(())
     }
@@ -109,10 +97,12 @@ impl Scene for Widget2dScene {
 
         self.render_pipeline.bind();
         self.widget_shader_program.use_program();
+        
+        unsafe {
+            gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 0, self.widget_quad.dbo.get_id());
+        }
 
-        self.send_widget_info()?;
-        self.widget_quad.draw(&self.widget_shader_program)?;
-
+        self.widget_quad.draw()?;
         self.render_pipeline.draw()?;
 
         Ok(())

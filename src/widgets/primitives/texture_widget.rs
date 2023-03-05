@@ -1,8 +1,8 @@
 use std::rc::Rc;
 use cgmath::{Vector2, Quaternion, Matrix4, SquareMatrix};
-use silver_gl::{Texture, ShaderProgram};
+use silver_gl::Texture;
 use crate::{Widget, EngineError};
-use super::{PrimitiveType, PrimitiveCounter};
+use super::PrimitiveType;
 
 pub struct TextureWidget {
     pub position: Vector2<f32>,
@@ -12,7 +12,7 @@ pub struct TextureWidget {
     pub children: Vec<Box<dyn Widget>>,
     pub index: Option<usize>,
     pub vec_space: Matrix4<f32>,
-    pub texture: Option<Rc<Texture>>
+    pub texture: Option<Rc<Texture>>,
 }
 
 impl Default for TextureWidget {
@@ -46,19 +46,14 @@ impl Widget for TextureWidget {
     fn get_texture(&self) -> &Option<Rc<Texture>> { &self.texture }
     fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> { Ok(self.texture = Some(texture)) }
 
-    fn send_widget_info(&self, shader_program: &ShaderProgram, counter: &mut PrimitiveCounter) -> Result<(), EngineError> {
-        if let Some(index) = self.index {
-            let widget_type_str = format!("widgets[{}].type", index);
-            let widget_index_str = format!("widgets[{}].index", index);
-                        
-            shader_program.set_int(&widget_type_str, PrimitiveType::Texture as i32)?;
-            shader_program.set_int(&widget_index_str, counter.texture_num)?;
+    fn widget_info(&mut self) -> Vec<u8> {
+        let mut data: Vec<u8> = Vec::new();
 
-            counter.texture_num += 1;
-        } else {
-            return Err(EngineError::WidgetIndexMissing());
+        if let Some(tex) = &self.texture {
+            data.extend((PrimitiveType::Texture as u32).to_ne_bytes());
+            data.extend(tex.get_id().to_ne_bytes());
         }
 
-        Ok(())
+        data
     }
 }

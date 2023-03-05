@@ -1,8 +1,11 @@
 use cgmath::{Vector3, Vector2};
-use silver_gl::{Model, Vertex, Mesh};
+use silver_gl::Vertex;
+use crate::widget_model::WModel;
 
-pub fn create_wquad() -> Model {
+pub fn create_wquad() -> WModel {
     // Flat panel definition
+    // Starts at (0.0, 0.0) for a default top-left
+    // anchor
     let vertices = vec![
         Vertex {
             position: Vector3::new(0.0, 0.0, 0.0),
@@ -35,11 +38,11 @@ pub fn create_wquad() -> Model {
         0, 2, 3
     ];
 
-    let model = Model::new(
+    let model = WModel::new(
         vertices,
         indices,
-        Vec::new(), 
-        vec![Mesh::new(0, 6)]
+        Vec::new(),
+        Vec::new()
     );
 
     model

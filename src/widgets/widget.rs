@@ -1,8 +1,8 @@
 use std::rc::Rc;
 use cgmath::{Quaternion, Matrix4, Vector2, vec3, vec4, SquareMatrix, vec2};
 use downcast_rs::{Downcast, impl_downcast};
-use silver_gl::{Model, Texture, ShaderProgram};
-use crate::{EngineError, primitives::PrimitiveCounter};
+use silver_gl::{Texture, ShaderProgram};
+use crate::{EngineError, widget_model::WModel};
 
 // TODO: To create a kind of crosshair widget that follows a point (to make animating in widgets cool),
 // TODO: have a widget (child of top-level widget, preferably on the bottom of the vec so it draws
@@ -40,6 +40,10 @@ use crate::{EngineError, primitives::PrimitiveCounter};
 // TODO: then rendered appropriately. This will allow significantly greater texture binds, less
 // TODO: complexity with not needing a primitive counter, and the same flexibility to create new
 // TODO: primitive widget (just start with a primitive code of the engine reserved codes + 1)
+
+// TODO: Find ways to optimize traverse_and_push_all by only pushing/dealing with changes
+
+// TODO: Replace "1024" wish "DataBlockSize" constant
 pub trait Widget: Downcast {
     fn get_position(&self) -> Vector2<f32>;
     fn set_position(&mut self, pos: Vector2<f32>);
@@ -111,7 +115,7 @@ pub trait Widget: Downcast {
     fn set_vec_space(&mut self, vec_space: Matrix4<f32>);
 
     // Send visual properties of the widget to shader program
-    fn send_widget_info(&self, shader_program: &ShaderProgram, counter: &mut PrimitiveCounter) -> Result<(), EngineError>;
+    fn widget_info(&mut self) -> Vec<u8>;
 
     // Traverses tree in linearized order, pushing the widgets' information to the quad
     // Assumes that clear_inner has been run on the tbo and clear has been run on the
@@ -121,28 +125,26 @@ pub trait Widget: Downcast {
     // Needs to be run when widget tree is changed
     fn traverse_and_push_all(
         &mut self,
-        quad: &mut Model,
+        quad: &mut WModel,
         shader_program: &ShaderProgram,
-        vec_space: Matrix4<f32>,
-        counter: &mut PrimitiveCounter
+        vec_space: Matrix4<f32>
     ) -> Result<(), EngineError> {
         self.set_index(Some(quad.tbo.len()));
         self.set_vec_space(vec_space);
         
         let matrix = self.transform_matrix();
+        let data = self.widget_info();
+        let mut data_block = vec![0; 1024];
+
+        data_block.splice(..data.len(), data);
 
         unsafe {
             quad.tbo.push_to_inner(matrix);
+            quad.dbo.push_range_inner(data_block);
         }
-
-        if let Some(texture) = self.get_texture() {
-            quad.meshes[0].diffuse_textures.push(Rc::clone(texture));
-        }
-
-        self.send_widget_info(shader_program, counter)?;
 
         for widget in self.get_children_mut() {
-            widget.traverse_and_push_all(quad, shader_program, matrix, counter)?;
+            widget.traverse_and_push_all(quad, shader_program, matrix)?;
         }
 
         Ok(())
@@ -150,10 +152,10 @@ pub trait Widget: Downcast {
 
     // Index needs to be set, meaning above function needs to have been run
     // Cannot be run after widget tree is modified without push_all being run first
-    // To Used to batch together transforms
+    // Used to batch together transforms
     // This is meant to to be run with a send_data afterwards, since it's to batch
     // transforms
-    fn traverse_and_set_transforms(&mut self, quad: &mut Model, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
+    fn traverse_and_set_transforms(&mut self, quad: &mut WModel, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
         self.set_vec_space(vec_space);
 
         let matrix = self.transform_matrix();
@@ -173,24 +175,10 @@ pub trait Widget: Downcast {
         Ok(())
     }
 
-    fn traverse_and_set_textures(&self, quad: &mut Model) -> Result<(), EngineError> {
-        if let (Some(index), Some(texture)) = (self.get_index(), self.get_texture()) {
-            quad.meshes[0].diffuse_textures[index] = Rc::clone(texture);
-        } else {
-            return Err(EngineError::WidgetIndexMissing());
-        }
-
-        for widget in self.get_children() {
-            widget.traverse_and_set_textures(quad)?;
-        }
-        
-        Ok(())
-    }
-
     // These set inner transforms and textures, so you can batch-transform a selection
     // of widgets without sacrificing performance
     // Requires a send_data to be send afterwards
-    fn set_transform(&self, quad: &mut Model) -> Result<(), EngineError> {
+    fn set_transform(&self, quad: &mut WModel) -> Result<(), EngineError> {
         if let Some(index) = self.get_index() {
             unsafe {
                 quad.tbo.set_data_index_inner(self.transform_matrix(), index);
@@ -206,21 +194,9 @@ pub trait Widget: Downcast {
     // This are meant to be run standalone, so only when updating one thing
     // If performance is an issue, use one of the above
     // Doesn't have all in one transform because of the 3 things that make it up
-    fn set_transform_send(&self, quad: &mut Model) -> Result<(), EngineError> {
+    fn set_transform_send(&self, quad: &mut WModel) -> Result<(), EngineError> {
         if let Some(index) = self.get_index() {
             quad.tbo.set_data_index(self.transform_matrix(), index);
-        } else {
-            return Err(EngineError::WidgetIndexMissing());
-        }
-        
-        Ok(())
-    }
-
-    // Textures are always sent to the shader each frame, so this doesn't need any subsequent
-    // function
-    fn set_texture_send(&self, quad: &mut Model) -> Result<(), EngineError> {
-        if let (Some(index), Some(texture)) = (self.get_index(), self.get_texture()) {
-            quad.meshes[0].diffuse_textures[index] = Rc::clone(texture);
         } else {
             return Err(EngineError::WidgetIndexMissing());
         }
@@ -235,14 +211,21 @@ pub trait Widget: Downcast {
     fn get_texture(&self) -> &Option<Rc<Texture>> { &None } // Used for texture primitive widgets
     fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> { Err(EngineError::TexturelessWidget(texture.get_id())) }
 
-    // Needs to be run each frame
-    fn traverse_and_send_info(&self, shader_program: &ShaderProgram, counter: &mut PrimitiveCounter) -> Result<(), EngineError> {
-        self.send_widget_info(shader_program, counter)?;
-
-        for widget in self.get_children() {
-            widget.traverse_and_send_info(shader_program, counter)?;
+    // Cannot be run after widget tree is modified without push_all being run first
+    // Since everything is aligned in 1KB blocks, this only sends the affected ranges
+    // as an optimisation.
+    // Requires buffer data to be mut, but does not require a send_data_mut afterwards
+    fn traverse_and_send_info(&mut self, quad: &mut WModel) -> Result<(), EngineError> {
+        if let Some(index) = self.get_index() {
+            quad.dbo.set_data_range(self.widget_info(), index * 1024);
+        } else {
+            return Err(EngineError::WidgetIndexMissing());
         }
 
+        for widget in self.get_children_mut() {
+            widget.traverse_and_send_info(quad)?;
+        }
+        
         Ok(())
     }
 }

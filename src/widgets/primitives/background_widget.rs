@@ -1,7 +1,6 @@
 use cgmath::{Vector4, Quaternion, Matrix4, SquareMatrix, Vector2};
-use crate::{Widget, EngineError};
-use silver_gl::ShaderProgram;
-use super::{PrimitiveType, PrimitiveCounter};
+use crate::Widget;
+use super::PrimitiveType;
 
 pub struct BackgroundWidget {
     // TODO: Add colour struct that stores everything in RGB,
@@ -13,7 +12,7 @@ pub struct BackgroundWidget {
     pub height: f32,
     pub children: Vec<Box<dyn Widget>>,
     pub index: Option<usize>,
-    pub vec_space: Matrix4<f32>
+    pub vec_space: Matrix4<f32>,
 }
 
 impl Default for BackgroundWidget {
@@ -26,7 +25,7 @@ impl Default for BackgroundWidget {
             height: 1.0,
             children: Default::default(),
             index: None,
-            vec_space: Matrix4::<f32>::identity()
+            vec_space: Matrix4::<f32>::identity(),
         }
     }
 }
@@ -45,21 +44,15 @@ impl Widget for BackgroundWidget {
     fn get_vec_space(&self) -> Matrix4<f32> { self.vec_space }
     fn set_vec_space(&mut self, vec_space: Matrix4<f32>) { self.vec_space = vec_space }
 
-    fn send_widget_info(&self, shader_program: &ShaderProgram, counter: &mut PrimitiveCounter) -> Result<(), EngineError> {
-        if let Some(index) = self.index {
-            let widget_type_str = format!("widgets[{}].type", index);
-            let widget_index_str = format!("widgets[{}].index", index);
-            let primitive_str = format!("backgroundWidgets[{}]", counter.background_num);
+    fn widget_info(&mut self) -> Vec<u8> {
+        let mut data: Vec<u8> = Vec::new();
             
-            shader_program.set_int(&widget_type_str, PrimitiveType::Background as i32)?;
-            shader_program.set_int(&widget_index_str, counter.background_num)?;
-            shader_program.set_vector_4(&primitive_str, &self.colour)?;
+        data.extend((PrimitiveType::Background as u32).to_ne_bytes());
+        data.extend(self.colour.x.to_ne_bytes());
+        data.extend(self.colour.y.to_ne_bytes());
+        data.extend(self.colour.z.to_ne_bytes());
+        data.extend(self.colour.w.to_ne_bytes());
 
-            counter.background_num += 1;
-        } else {
-            return Err(EngineError::WidgetIndexMissing());
-        }
-
-        Ok(())
+        data
     }
 }

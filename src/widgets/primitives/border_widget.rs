@@ -1,7 +1,6 @@
 use cgmath::{Vector4, Quaternion, Matrix4, SquareMatrix, Vector2};
-use crate::{Widget, EngineError};
-use silver_gl::ShaderProgram;
-use super::{PrimitiveType, PrimitiveCounter};
+use crate::Widget;
+use super::PrimitiveType;
 
 pub struct BorderWidget {
     // TODO: Individual colours for each side
@@ -15,7 +14,7 @@ pub struct BorderWidget {
     pub height: f32,
     pub children: Vec<Box<dyn Widget>>,
     pub index: Option<usize>,
-    pub vec_space: Matrix4<f32>
+    pub vec_space: Matrix4<f32>,
 }
 
 impl Default for BorderWidget {
@@ -29,7 +28,7 @@ impl Default for BorderWidget {
             children: Default::default(),
             index: None,
             vec_space: Matrix4::<f32>::identity(),
-            border_widths: Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0),
+            border_widths: Vector4::<f32>::new(0.01, 0.01, 0.01, 0.01),
         }
     }
 }
@@ -53,23 +52,19 @@ impl Widget for BorderWidget {
     fn get_vec_space(&self) -> Matrix4<f32> { self.vec_space }
     fn set_vec_space(&mut self, vec_space: Matrix4<f32>) { self.vec_space = vec_space }
 
-    fn send_widget_info(&self, shader_program: &ShaderProgram, counter: &mut PrimitiveCounter) -> Result<(), EngineError> {
-        if let Some(index) = self.index {
-            let widget_type_str = format!("widgets[{}].type", index);
-            let widget_index_str = format!("widgets[{}].index", index);
-            let primitive_colour_str = format!("borderWidgets[{}].colour", counter.border_num);
-            let primitive_width_str = format!("borderWidgets[{}].widths", counter.border_num);
+    fn widget_info(&mut self) -> Vec<u8> {
+        let mut data: Vec<u8> = Vec::new();
             
-            shader_program.set_int(&widget_type_str, PrimitiveType::Border as i32)?;
-            shader_program.set_int(&widget_index_str, counter.border_num)?;
-            shader_program.set_vector_4(&primitive_colour_str, &self.colour)?;
-            shader_program.set_vector_4(&primitive_width_str, &self.border_widths)?;
+        data.extend((PrimitiveType::Border as u32).to_ne_bytes());
+        data.extend(self.colour.x.to_ne_bytes());
+        data.extend(self.colour.y.to_ne_bytes());
+        data.extend(self.colour.z.to_ne_bytes());
+        data.extend(self.colour.w.to_ne_bytes());
+        data.extend(self.border_widths.x.to_ne_bytes());
+        data.extend(self.border_widths.y.to_ne_bytes());
+        data.extend(self.border_widths.z.to_ne_bytes());
+        data.extend(self.border_widths.w.to_ne_bytes());
 
-            counter.border_num += 1;
-        } else {
-            return Err(EngineError::WidgetIndexMissing());
-        }
-
-        Ok(())
+        data
     }
 }
