@@ -38,24 +38,7 @@ impl Default for PictureWidget {
     }
 }
 
-// TODO: add from function that takes the 3 primitive widgets
-// TODO: add new function that takes picture, loads it as texture, and returns this
 impl PictureWidget {
-    pub fn from_primitives(
-        background: BackgroundWidget,
-        picture: TextureWidget,
-        border: BorderWidget
-    ) -> PictureWidget {
-        PictureWidget {
-            children: vec![
-                Box::new(background),
-                Box::new(picture),
-                Box::new(border)
-            ],
-            ..Default::default()
-        }
-    }
-
     pub fn from_path(resource_manager: &mut ResourceManager, path: &str) -> Result<PictureWidget, EngineError> {
         let texture = resource_manager.load_texture_2d(path)?;
 
@@ -82,6 +65,8 @@ impl PictureWidget {
 }
 
 impl FramedWidget for PictureWidget {
+    type Inner = TextureWidget;
+
     fn get_padding(&self) -> &Vector4<f32> { &self.padding }
     fn set_padding_inner_val(&mut self, widths: Vector4<f32>) { self.padding = widths }
 }

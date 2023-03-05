@@ -1,17 +1,8 @@
 use std::rc::Rc;
-use cgmath::{Quaternion, Matrix4, Vector2, vec3, vec4, SquareMatrix};
+use cgmath::{Quaternion, Matrix4, Vector2, vec3, vec4, SquareMatrix, vec2};
 use downcast_rs::{Downcast, impl_downcast};
 use silver_gl::{Model, Texture, ShaderProgram};
 use crate::{EngineError, primitives::PrimitiveCounter};
-
-// TODO: when doing compound widgets, add a padding value which will just be added to the position and taken
-// TODO: off from the width and height * 2
-
-// TODO: Composite widgets might have a composite trait that can get stuff like padding, the primitives, etc.
-// TODO: Could also be called framed widgets?
-// TODO: They would hold the children separately (e.g. frame widget prop, etc), allowing functions and users
-// TODO: to easier modify visual aspects of the widgets.
-// TODO: Override defaults to make this work.
 
 // TODO: To create a kind of crosshair widget that follows a point (to make animating in widgets cool),
 // TODO: have a widget (child of top-level widget, preferably on the bottom of the vec so it draws
@@ -27,6 +18,28 @@ use crate::{EngineError, primitives::PrimitiveCounter};
 // TODO: will be divided up into "dots", mimicing screen-resolution in its function. Resolution can
 // TODO: can be set when creating the engine. An example would be 16:9 aspect ratio with 100 resolution,
 // TODO: resulting in dots of 1600x900, which would remain constant no matter the screen resolution.
+
+// TODO: Make an enum for the 3 types of positioning coordinates. These hold the values in their
+// TODO: respective forms, each floats. Each option will be a point with (x,y). Widgets store only
+// TODO: relative locations. Transform the get/set_position/size functions into _inner, so that
+// TODO: the implementer only needs to implement relative sizing. Then make more general default
+// TODO: functions where you can set the enum (and it will automatically translate), or with
+// TODO: get_*_pixel/dot/relative. The dot system will be initialized in the engine, and will
+// TODO: give a transform matrix to go from pixels to dots. Possibly use a type alias to change
+// TODO: Point enum to Size, but they both essentially are the same thing. Possibly implement
+// TODO: From traits on each of them to translate between the two?
+
+// TODO: NEW METHOD OF RENDERING WIDGETS!
+// TODO: Old way was confusing and not as extensible as it should be. New way should be significantly
+// TODO: better. Basic Idea:
+// TODO: Each primitive widget gets 1KB of data in the GPU memory, after transformation matrices. This
+// TODO: contains a widget type at the start (u8 with primitives being assigned different codes), a
+// TODO: length in bytes (u32), and the rest of it will be data. The fragment shader can then read the
+// TODO: primitive code, then pass the blob to the appropriate render function where it is coerced
+// TODO: into the appropriate type (struct that has things like border width and colour, for example),
+// TODO: then rendered appropriately. This will allow significantly greater texture binds, less
+// TODO: complexity with not needing a primitive counter, and the same flexibility to create new
+// TODO: primitive widget (just start with a primitive code of the engine reserved codes + 1)
 pub trait Widget: Downcast {
     fn get_position(&self) -> Vector2<f32>;
     fn set_position(&mut self, pos: Vector2<f32>);
@@ -44,8 +57,9 @@ pub trait Widget: Downcast {
         let mut matrix = Matrix4::<f32>::from_translation(vec3(pos.x, pos.y, 0.0));
         let (width, height) = self.get_size();
         matrix = matrix * Matrix4::<f32>::from_nonuniform_scale(width, height, 1.0);
-        // TODO: Add option to change where the widget is rotated from
         matrix = matrix * Matrix4::<f32>::from(self.get_rotation());
+        // TODO: Add option to change where the widget is rotated from
+        // TODO: This could be implemented by transforming by relative points then rotating
         matrix = self.get_vec_space() * matrix;
         
         matrix
@@ -67,10 +81,26 @@ pub trait Widget: Downcast {
         let inverted_vec_space = self.get_vec_space().invert().expect("Transformation matrix should be invertible");
         size_vec = inverted_vec_space * size_vec;
 
-        self.set_size(size_vec.x, size_vec.y)
+        self.set_size(size_vec.x, size_vec.y);
     }
 
-    // TODO: Set/get position in pixels
+    fn get_position_pixels(&self) -> Vector2<f32> {
+        let pos = self.get_position();
+        let mut pos_vec = vec4(pos.x, pos.y, 0.0, 1.0);
+
+        pos_vec = self.get_vec_space() * pos_vec;
+
+        vec2(pos_vec.x, pos_vec.y)
+    }
+
+    fn set_position_pixels(&mut self, pos: Vector2<f32>) {
+        let mut pos_vec = vec4(pos.x, pos.y, 0.0, 1.0);
+
+        let inverted_vec_space = self.get_vec_space().invert().expect("Transformation matrix should be invertible");
+        pos_vec = inverted_vec_space * pos_vec;
+
+        self.set_position(vec2(pos_vec.x, pos_vec.y));
+    }
 
     // These are used to optimize changing textures and transforms
     fn get_index(&self) -> Option<usize>;

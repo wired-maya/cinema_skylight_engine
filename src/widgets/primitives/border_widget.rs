@@ -32,8 +32,11 @@ impl Default for BorderWidget {
             border_widths: Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0),
         }
     }
+}
 
-    // TODO: Add get/set border_widths in pixels
+// TODO: Add get/set border_widths in pixels
+impl BorderWidget {
+    
 }
 
 impl Widget for BorderWidget {

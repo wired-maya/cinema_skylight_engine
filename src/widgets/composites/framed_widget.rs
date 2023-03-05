@@ -2,16 +2,33 @@ use cgmath::{Vector4, vec2};
 
 use crate::{primitives::{BackgroundWidget, BorderWidget}, Widget};
 
-pub trait FramedWidget: Widget {
+pub trait FramedWidget: Widget + Default {
+    type Inner: Widget; // Type of the widget to be held inside the frame
+
+    fn from_primitives(
+        background: BackgroundWidget,
+        inner: Self::Inner,
+        border: BorderWidget
+    ) -> Self {
+        let mut widget = Self::default();
+        let children = widget.get_children_mut();
+
+        children.push(Box::new(background));
+        children.push(Box::new(inner));
+        children.push(Box::new(border));
+
+        widget
+    }
+
     // Default order is BackgroundWidget, Inner Widget, BorderWidget,
     // if you change it when implementing a new framed widget then you
     // must reimplement these members
     fn get_background(&self) -> &BackgroundWidget {
         self.get_children()[0].downcast_ref().expect("0th child should be BackgroundWidget!")
     }
-    // TODO: Use the type variable thing to make return type the actual widget
-    // TODO: Use that to also add a from_primitives function
-    fn get_inner_widget(&self) -> &Box<dyn Widget> { &self.get_children()[1] }
+    fn get_inner_widget(&self) -> &Self::Inner {
+        self.get_children()[1].downcast_ref().expect("1st child should be Self::Inner!")
+    }
     fn get_border(&self) -> &BorderWidget {
         self.get_children()[2].downcast_ref().expect("2nd child should be BorderWidget!")
     }
@@ -19,7 +36,9 @@ pub trait FramedWidget: Widget {
     fn get_background_mut(&mut self) -> &mut BackgroundWidget {
         self.get_children_mut()[0].downcast_mut().expect("0th child should be BackgroundWidget!")
     }
-    fn get_inner_widget_mut(&mut self) -> &mut Box<dyn Widget> { &mut self.get_children_mut()[1] }
+    fn get_inner_widget_mut(&mut self) -> &mut Self::Inner {
+        self.get_children_mut()[1].downcast_mut().expect("1st child should be Self::Inner!")
+    }
     fn get_border_mut(&mut self) -> &mut BorderWidget {
         self.get_children_mut()[2].downcast_mut().expect("2nd child should be BorderWidget!")
     }
@@ -56,9 +75,4 @@ pub trait FramedWidget: Widget {
         widget.set_size(width, height);
         widget.set_position(vec2(x, y));
     }
-
-    // TODO: Implement some kind of way to keep all frame sides on equal terms
-    // TODO: Implement way to set frame sides in pixels
-
-    // TODO: Add padding
 }
