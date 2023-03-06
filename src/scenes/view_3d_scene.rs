@@ -1,6 +1,6 @@
 use std::{rc::Rc, cell::RefCell};
 use cgmath::{Matrix4, SquareMatrix};
-use silver_gl::{Model, Skybox, ShaderProgram, RenderPipeline};
+use silver_gl::{Model, Skybox, ShaderProgram, RenderPipeline, gl};
 use crate::{Camera, GameObject, CameraSize, ShaderPathBundle, ResourceManager, EngineError, Scene};
 
 // TODO: add lights, need a light trait

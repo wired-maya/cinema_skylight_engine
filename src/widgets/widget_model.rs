@@ -1,6 +1,6 @@
 use cgmath::Matrix4;
 use memoffset::offset_of;
-use silver_gl::{Vertex, GlError, VertexArray, Buffer};
+use silver_gl::{Vertex, GlError, VertexArray, Buffer, gl};
 
 // Modified model struct from silver_gl to allow for greater compatibility
 // witht he widget system.

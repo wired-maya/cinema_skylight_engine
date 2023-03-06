@@ -1,5 +1,5 @@
 use cgmath::{Vector3, Point3, vec3, Zero, Matrix4, InnerSpace, Deg, Matrix};
-use silver_gl::{UniformBuffer, GlError, ShaderProgram};
+use silver_gl::{UniformBuffer, GlError, ShaderProgram, gl};
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum CameraMovement {

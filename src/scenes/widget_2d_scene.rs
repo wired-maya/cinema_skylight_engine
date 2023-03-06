@@ -1,6 +1,6 @@
 use std::{rc::Rc};
 use cgmath::{Matrix4, SquareMatrix};
-use silver_gl::{RenderPipeline, ShaderProgram};
+use silver_gl::{RenderPipeline, ShaderProgram, gl};
 use crate::{Camera, EngineError, ResourceManager, ShaderPathBundle, CameraSize, create_wquad, Widget, Scene, CameraProjection, widget_model::WModel};
 
 pub struct Widget2dScene {

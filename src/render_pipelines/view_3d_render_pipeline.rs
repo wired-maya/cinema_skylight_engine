@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use silver_gl::{Framebuffer, ShaderProgram, GlError, RenderPipeline, Texture};
+use silver_gl::{Framebuffer, ShaderProgram, GlError, RenderPipeline, Texture, gl};
 
 use crate::{ResourceManager, EngineError, ShaderPathBundle};
 

@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use silver_gl::{Framebuffer, GlError, RenderPipeline, Texture};
+use silver_gl::{Framebuffer, GlError, RenderPipeline, Texture, gl};
 
 use crate::EngineError;
 

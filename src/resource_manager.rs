@@ -1,6 +1,6 @@
 use std::{rc::Rc, collections::HashMap, path::Path, cell::RefCell, fs::File, io::Read};
 use cgmath::{vec3, vec2, Matrix4, Vector3, Vector2};
-use silver_gl::{Model, Texture, Vertex, Mesh, GlImage, Skybox, ShaderProgram, ShaderCodeBundle};
+use silver_gl::{Model, Texture, Vertex, Mesh, GlImage, Skybox, ShaderProgram, ShaderCodeBundle, gl};
 use image::DynamicImage::*;
 
 use crate::EngineError;

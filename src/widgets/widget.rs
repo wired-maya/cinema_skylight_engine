@@ -29,18 +29,6 @@ use crate::{EngineError, widget_model::WModel};
 // TODO: Point enum to Size, but they both essentially are the same thing. Possibly implement
 // TODO: From traits on each of them to translate between the two?
 
-// TODO: NEW METHOD OF RENDERING WIDGETS!
-// TODO: Old way was confusing and not as extensible as it should be. New way should be significantly
-// TODO: better. Basic Idea:
-// TODO: Each primitive widget gets 1KB of data in the GPU memory, after transformation matrices. This
-// TODO: contains a widget type at the start (u8 with primitives being assigned different codes), a
-// TODO: length in bytes (u32), and the rest of it will be data. The fragment shader can then read the
-// TODO: primitive code, then pass the blob to the appropriate render function where it is coerced
-// TODO: into the appropriate type (struct that has things like border width and colour, for example),
-// TODO: then rendered appropriately. This will allow significantly greater texture binds, less
-// TODO: complexity with not needing a primitive counter, and the same flexibility to create new
-// TODO: primitive widget (just start with a primitive code of the engine reserved codes + 1)
-
 // TODO: Find ways to optimize traverse_and_push_all by only pushing/dealing with changes
 
 // TODO: Replace "1024" wish "DataBlockSize" constant
