@@ -51,7 +51,12 @@ impl Widget for TextureWidget {
 
         if let Some(tex) = &self.texture {
             data.extend((PrimitiveType::Texture as u32).to_ne_bytes());
-            data.extend(tex.get_id().to_ne_bytes());
+
+            unsafe {
+                let handle = tex.get_handle();
+                tex.make_resident();
+                data.extend(handle.to_ne_bytes());
+            }
         }
 
         data
