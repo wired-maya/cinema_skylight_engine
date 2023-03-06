@@ -5,11 +5,26 @@ use image::DynamicImage::*;
 
 use crate::EngineError;
 
-#[derive(Default)]
 pub struct ResourceManager {
     model_store: HashMap<String, Rc<RefCell<Model>>>,
     texture_store: HashMap<String, Rc<Texture>>,
-    shader_store: HashMap<ShaderPathBundle, Rc<ShaderProgram>>
+    shader_store: HashMap<ShaderPathBundle, Rc<ShaderProgram>>,
+    glyph_store: HashMap<GlyphMetaDeta, Rc<GlyphData>>,
+    face_store: HashMap<String, freetype::Face>,
+    face_library: freetype::Library
+}
+
+impl Default for ResourceManager {
+    fn default() -> Self {
+        Self {
+            model_store: Default::default(),
+            texture_store: Default::default(),
+            shader_store: Default::default(),
+            glyph_store: Default::default(),
+            face_store: Default::default(),
+            face_library: freetype::Library::init().unwrap()
+        }
+    }
 }
 
 // TODO: Make all loading async so that it is faster :)
@@ -274,6 +289,65 @@ impl ResourceManager {
             self.load_shaders(paths)
         }
     }
+
+    // face_library has its own resource manager, so it is possible to
+    // get away with not storing path while still having all the benefits
+    // of a normal resource manager. Instead the font_family is stored so
+    // that glyphs can be loaded easily.
+    pub fn load_face(&mut self, path: &str) -> Result<(), EngineError> {
+        let face = self.face_library.new_face(path, 0)?;
+        self.face_store.insert(face.family_name().expect("Font should have family name!"), face);
+        
+        Ok(())
+    }
+
+    fn _load_glyph(&mut self, glyph_metadata: GlyphMetaDeta) -> Result<Rc<GlyphData>, EngineError> {
+        let face = self.face_store.get(&glyph_metadata.font_family);
+        if let Some(face) = face {
+            face.load_char(glyph_metadata.glyph as usize, freetype::face::LoadFlag::RENDER)?;
+            let glyph = face.glyph();
+
+            let image = GlImage {
+                bytes: glyph.bitmap().buffer().to_vec(),
+                internal_format: gl::RED,
+                data_format: gl::RED,
+                width: glyph.bitmap().width(),
+                height: glyph.bitmap().rows(),
+            };
+
+            // Disable pixel alignment so one byte textures can be stored in GPU
+            // TODO: might not be needed since buffer is supposed to be aligned to 32-bit?
+            unsafe {
+                gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
+            }
+
+            let data = Rc::new(
+                GlyphData {
+                    texture: Texture::from_2d_ui(image),
+                    size: vec2(glyph.bitmap().width(), glyph.bitmap().rows()),
+                    bearing: vec2(glyph.bitmap_left(), glyph.bitmap_top()),
+                    advance: glyph.advance().x,
+                }
+            );
+
+            self.glyph_store.insert(glyph_metadata, Rc::clone(&data));
+
+            Ok(data)
+        } else {
+            Err(EngineError::FontFamilyNotFound(glyph_metadata.font_family))
+        }
+    }
+
+    // Lazy loading of glyphs enabled this way
+    pub fn load_glyph(&mut self, glyph_metadata: GlyphMetaDeta) -> Result<Rc<GlyphData>, EngineError> {
+        if let Some(glyph) = self.glyph_store.get(&glyph_metadata) {
+            Ok(Rc::clone(glyph))
+        } else {
+            self._load_glyph(glyph_metadata)
+        }
+    }
+
+    // TODO: add an eager font load function
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -281,4 +355,18 @@ pub struct ShaderPathBundle {
     pub vertex: Option<String>,
     pub geometry: Option<String>,
     pub fragment: Option<String>
+}
+
+#[derive(PartialEq, Eq, Hash)]
+pub struct GlyphMetaDeta {
+    pub font_family: String,
+    pub font_size: u32,
+    pub glyph: char
+}
+
+pub struct GlyphData {
+    pub texture: Texture,
+    pub size: Vector2<i32>,
+    pub bearing: Vector2<i32>,
+    pub advance: i64
 }

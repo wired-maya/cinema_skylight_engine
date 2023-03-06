@@ -11,6 +11,8 @@ pub enum EngineError {
     WidgetIndexMissing(),
     TexturelessWidget(u32),
     WidgetNotPrimitive(),
+    FontError(freetype::Error),
+    FontFamilyNotFound(String)
 }
 
 // TODO: Write errors that suggest a solution as well
@@ -23,7 +25,9 @@ impl Display for EngineError {
             EngineError::GlError(gl_err) => write!(f, "{}", gl_err),
             EngineError::WidgetIndexMissing() => write!(f, "The index for this widget does not exist.\nThis occurs when you haven't run traverse_and_push() after modifying the widget tree"),
             EngineError::TexturelessWidget(id) => write!(f, "This widget does not take a texuture, yet the texture {id} was provided", ),
-            EngineError::WidgetNotPrimitive() => write!(f, "This is a compound widget and therefore its transform cannot be set manually. Please use the traverse_and_*() functions")
+            EngineError::WidgetNotPrimitive() => write!(f, "This is a compound widget and therefore its transform cannot be set manually. Please use the traverse_and_*() functions"),
+            EngineError::FontError(font_err) => write!(f, "{}", font_err),
+            EngineError::FontFamilyNotFound(family) => write!(f, "Font family '{}' not found. This occurs when you haven't loaded a matching font via the resource manager.", family)
         }
     }
 }
@@ -51,5 +55,11 @@ impl From<std::io::Error> for EngineError {
 impl From<GlError> for EngineError {
     fn from(err: GlError) -> Self {
         EngineError::GlError(err)
+    }
+}
+
+impl From<freetype::Error> for EngineError {
+    fn from(err: freetype::Error) -> Self {
+        EngineError::FontError(err)
     }
 }
