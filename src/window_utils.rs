@@ -31,6 +31,8 @@ impl EngineWindow {
         // TODO: Temporary
         // window.set_cursor_mode(glfw::CursorMode::Disabled);
 
+        // glfw.extension_supported(extension);
+
         // Move into struct for easy referencing
         EngineWindow { glfw, events, window }
     }

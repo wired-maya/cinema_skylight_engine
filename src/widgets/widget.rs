@@ -32,6 +32,9 @@ use crate::{EngineError, widget_model::WModel};
 // TODO: Find ways to optimize traverse_and_push_all by only pushing/dealing with changes
 
 // TODO: Replace "1024" wish "DataBlockSize" constant
+
+// TODO: Find a way to do widget shaddows (draw a second quad w/ Gaussian blur underneath?)
+// TODO: Has both size and offset, so you can customize the shadow to your liking!
 pub trait Widget: Downcast {
     fn get_position(&self) -> Vector2<f32>;
     fn set_position(&mut self, pos: Vector2<f32>);
