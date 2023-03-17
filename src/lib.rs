@@ -17,6 +17,19 @@ pub use camera::*;
 pub use render_pipelines::*;
 pub use scenes::*;
 
+// Lib level uses
+use std::cell::RefCell;
+use silver_gl::ModelTrait;
+
+// TODO: Add type aliases for everything (textures, etc)
+// TODO: Use compile-time targets to change the meaning
+// TODO: of the type aliases, allowing for A) easier
+// TODO: code re-use with different GL libs, and B)
+// TODO: the ability to remove things like Boxed traits
+// TODO: where they are not needed, optimising the code
+// Type aliases to make the multi-GL usage easier
+type Model = RefCell<Box<dyn ModelTrait>>;
+
 // TODO: To support multiple OpenGL versions, DX11-12, and Vulkan
 // TODO: To do this, move all GL-specific code into their separate
 // TODO: GL crates, e.g. silver_gl_4.6, silver_gl_web, silver_vk,

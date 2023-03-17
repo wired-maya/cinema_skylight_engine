@@ -1,12 +1,11 @@
 use std::{rc::Rc, collections::HashMap, path::Path, cell::RefCell, fs::File, io::Read};
 use cgmath::{vec3, vec2, Matrix4, Vector3, Vector2};
-use silver_gl::{Model, Texture, Vertex, Mesh, GlImage, Skybox, ShaderProgram, ShaderCodeBundle, gl};
+use silver_gl::{Texture, Vertex, Mesh, GlImage, Skybox, ShaderProgram, ShaderCodeBundle, gl, ModelTrait};
 use image::DynamicImage::*;
-
-use crate::EngineError;
+use crate::{EngineError, Model};
 
 pub struct ResourceManager {
-    model_store: HashMap<String, Rc<RefCell<Model>>>,
+    model_store: HashMap<String, Rc<Model>>,
     texture_store: HashMap<String, Rc<Texture>>,
     shader_store: HashMap<ShaderPathBundle, Rc<ShaderProgram>>,
     glyph_store: HashMap<GlyphMetaDeta, Rc<GlyphData>>,
@@ -14,8 +13,13 @@ pub struct ResourceManager {
     face_library: freetype::Library
 }
 
-impl Default for ResourceManager {
-    fn default() -> Self {
+// TODO: Make all loading async so that it is faster :)
+// TODO: Time to beat: ~15 seconds on laptop
+// TODO: Learn to use Rayon, Tokio
+impl ResourceManager {
+    pub fn new() -> Self {
+        // TODO: Test if bindless textures are supported
+
         Self {
             model_store: Default::default(),
             texture_store: Default::default(),
@@ -25,13 +29,8 @@ impl Default for ResourceManager {
             face_library: freetype::Library::init().unwrap()
         }
     }
-}
 
-// TODO: Make all loading async so that it is faster :)
-// TODO: Time to beat: ~15 seconds on laptop
-// TODO: Learn to use Rayon, Tokio
-impl ResourceManager {
-    fn _load_model(&mut self, path: &str) -> Result<Rc<RefCell<Model>>, EngineError> {
+    fn _load_model(&mut self, path: &str) -> Result<Rc<Model, EngineError> {
         let path = Path::new(path);
         let obj_path = path.to_str().unwrap().to_owned();
         let directory = path.parent().unwrap_or_else(|| Path::new("")).to_str().unwrap();
@@ -116,7 +115,7 @@ impl ResourceManager {
         Ok(model)
     }
 
-    pub fn load_model(&mut self, path: &str) -> Result<Rc<RefCell<Model>>, EngineError> {
+    pub fn load_model(&mut self, path: &str) -> Result<Rc<Model, EngineError> {
         if let Some(model) = self.model_store.get(path) {
             Ok(Rc::clone(model))
         } else {
