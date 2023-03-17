@@ -2,8 +2,8 @@ use cgmath::Matrix4;
 use memoffset::offset_of;
 use silver_gl::{Vertex, GlError, VertexArray, Buffer, gl};
 
-// Modified model struct from silver_gl to allow for greater compatibility
-// witht he widget system.
+// TODO: Wrapper over silver_gl model to allow for easier compatibility
+// TODO: with the widget system
 pub struct WModel {
     pub vao: VertexArray,
     pub vbo: Buffer<Vertex>,
