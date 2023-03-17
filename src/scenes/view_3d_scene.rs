@@ -1,12 +1,12 @@
-use std::{rc::Rc, cell::RefCell};
+use std::rc::Rc;
 use cgmath::{Matrix4, SquareMatrix};
-use silver_gl::{Model, Skybox, ShaderProgram, RenderPipeline, gl};
-use crate::{Camera, GameObject, CameraSize, ShaderPathBundle, ResourceManager, EngineError, Scene};
+use silver_gl::{Skybox, ShaderProgram, RenderPipeline, gl};
+use crate::{Camera, GameObject, CameraSize, ShaderPathBundle, ResourceManager, EngineError, Scene, Model};
 
 // TODO: add lights, need a light trait
 // TODO: See if qsort is fast enough that  to allow me to sort models based on distance from the camera every frame, enabling transparency
 pub struct View3DScene {
-    pub models: Vec<Rc<RefCell<Model>>>,
+    pub models: Vec<Rc<Model>>,
     pub model_shader_program: Rc<ShaderProgram>,
     pub skybox: Skybox,
     pub skybox_shader_program: Rc<ShaderProgram>,

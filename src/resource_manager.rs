@@ -1,6 +1,6 @@
 use std::{rc::Rc, collections::HashMap, path::Path, cell::RefCell, fs::File, io::Read};
 use cgmath::{vec3, vec2, Matrix4, Vector3, Vector2};
-use silver_gl::{Texture, Vertex, Mesh, GlImage, Skybox, ShaderProgram, ShaderCodeBundle, gl, ModelTrait};
+use silver_gl::{Texture, Vertex, Mesh, GlImage, Skybox, ShaderProgram, ShaderCodeBundle, gl, ModelTrait, BindlessModel, ModelCreateTrait, MultiBindModel};
 use image::DynamicImage::*;
 use crate::{EngineError, Model};
 
@@ -10,15 +10,17 @@ pub struct ResourceManager {
     shader_store: HashMap<ShaderPathBundle, Rc<ShaderProgram>>,
     glyph_store: HashMap<GlyphMetaDeta, Rc<GlyphData>>,
     face_store: HashMap<String, freetype::Face>,
-    face_library: freetype::Library
+    face_library: freetype::Library,
+    supports_bindless: bool
 }
 
 // TODO: Make all loading async so that it is faster :)
 // TODO: Time to beat: ~15 seconds on laptop
 // TODO: Learn to use Rayon, Tokio
 impl ResourceManager {
-    pub fn new() -> Self {
-        // TODO: Test if bindless textures are supported
+    pub fn new(supports_bindless: bool) -> Self {
+        // TODO: Once moved to engine struct, make getting extension support
+        // TODO: automatic when initializing engine
 
         Self {
             model_store: Default::default(),
@@ -26,11 +28,12 @@ impl ResourceManager {
             shader_store: Default::default(),
             glyph_store: Default::default(),
             face_store: Default::default(),
-            face_library: freetype::Library::init().unwrap()
+            face_library: freetype::Library::init().unwrap(),
+            supports_bindless
         }
     }
 
-    fn _load_model(&mut self, path: &str) -> Result<Rc<Model, EngineError> {
+    fn _load_model(&mut self, path: &str) -> Result<Rc<Model>, EngineError> {
         let path = Path::new(path);
         let obj_path = path.to_str().unwrap().to_owned();
         let directory = path.parent().unwrap_or_else(|| Path::new("")).to_str().unwrap();
@@ -103,19 +106,18 @@ impl ResourceManager {
             meshes.push(gl_mesh);
         }
 
-        // Init with identity matrix for now
-        let model = Rc::new(RefCell::new(Model::new(
-            vertices,
-            indices,
-            vec![],
-            meshes
-        )));
+        let model: Box<dyn ModelTrait> = if self.supports_bindless {
+            Box::new(BindlessModel::new(vertices, indices, vec![], meshes))
+        } else {
+            Box::new(MultiBindModel::new(vertices, indices, vec![], meshes))
+        };
+        let model: Rc<Model> = Rc::new(RefCell::new(model));
         self.model_store.insert(obj_path, Rc::clone(&model));
 
         Ok(model)
     }
 
-    pub fn load_model(&mut self, path: &str) -> Result<Rc<Model, EngineError> {
+    pub fn load_model(&mut self, path: &str) -> Result<Rc<Model>, EngineError> {
         if let Some(model) = self.model_store.get(path) {
             Ok(Rc::clone(model))
         } else {
@@ -242,7 +244,7 @@ impl ResourceManager {
 
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
 
-        let mut model = Model::new(
+        let mut model = MultiBindModel::new(
             vertices,
             indices,
             model_transforms,
