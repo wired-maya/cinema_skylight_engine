@@ -1,14 +1,14 @@
 use std::sync::mpsc::Receiver;
 use glfw::{Window, Glfw, WindowEvent, Context};
 
-pub struct EngineWindow {
+pub struct CSEngine {
     pub glfw: Glfw,
     pub events: Receiver<(f64, WindowEvent)>,
     pub window: Window,
 }
 
-impl EngineWindow {
-    pub fn new(window_config: WindowConfig) -> EngineWindow {
+impl CSEngine {
+    pub fn create_window(&mut self) {
         // Create window
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
         glfw.window_hint(glfw::WindowHint::ContextVersion(4, 6));
@@ -32,7 +32,7 @@ impl EngineWindow {
         // window.set_cursor_mode(glfw::CursorMode::Disabled);
 
         // Move into struct for easy referencing
-        EngineWindow { glfw, events, window }
+        CSEngine { glfw, events, window }
     }
 
     pub fn extension_supported(&self, extension: &str) -> bool {
@@ -40,8 +40,26 @@ impl EngineWindow {
     }
 }
 
-pub struct WindowConfig {
+pub struct CSEngineConfig {
     pub width: u32,
     pub height: u32,
-    pub title: String
+    pub fov: f32,
+    pub title: String,
+    pub gl: GraphicsLibrary
+}
+
+impl Default for CSEngineConfig {
+    fn default() -> Self {
+        Self {
+            width: 1920,
+            height: 1080,
+            fov: 45.0,
+            title: String::from("My Game"),
+            gl: GraphicsLibrary::OpenGL4_6 // TODO: default should be 3_3
+        }
+    }
+}
+
+pub enum GraphicsLibrary {
+    OpenGL4_6
 }
