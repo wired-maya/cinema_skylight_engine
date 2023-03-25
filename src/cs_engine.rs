@@ -1,25 +1,63 @@
-use std::sync::mpsc::Receiver;
+use std::{sync::mpsc::Receiver, ffi::{c_void, CString}, slice};
 use glfw::{Window, Glfw, WindowEvent, Context};
+use silver_gl::gl;
+use crate::ResourceManager;
 
 pub struct CSEngine {
     pub glfw: Glfw,
     pub events: Receiver<(f64, WindowEvent)>,
     pub window: Window,
+    pub resource_manager: ResourceManager
+    // TODO: add CSEngineConfig as private with get/setters
 }
 
 impl CSEngine {
-    pub fn create_window(&mut self) {
+    pub fn new(config: CSEngineConfig) -> Self {
+        let (glfw, window, events) = Self::create_window(
+            config.width as u32,
+            config.height as u32,
+            &config.title,
+            config.capture_mouse,
+            config.gl
+        );
+
+        // let mut resource_manager = ResourceManager::new(gl_window.extension_supported("GL_ARB_bindless_texture"));
+        let resource_manager = ResourceManager::new(false); // TODO: temp to get this working
+
+        let mut engine = CSEngine {
+            glfw,
+            events,
+            window,
+            resource_manager
+        };
+
+        engine.configure_gl(config.gl);
+
+        engine
+    }
+
+    pub fn create_window(
+        width: u32,
+        height: u32,
+        title: &str,
+        capture_mouse: bool,
+        gl: GraphicsLibrary
+    ) -> (Glfw, Window, Receiver<(f64, WindowEvent)>) {
         // Create window
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-        glfw.window_hint(glfw::WindowHint::ContextVersion(4, 6));
-        glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
-        #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
+        match gl {
+            GraphicsLibrary::OpenGL4_6 => {
+                glfw.window_hint(glfw::WindowHint::ContextVersion(4, 6));
+                glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
+                #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
+            },
+        }
 
         let (mut window, events) = glfw.create_window(
-            window_config.width,
-            window_config.height,
-            window_config.title.as_str(),
-            glfw::WindowMode::Windowed
+            width,
+            height,
+            title,
+            glfw::WindowMode::Windowed // TODO: add to engine config
         ).expect("Failed to create GLFW window");
 
         // Apply window options
@@ -28,24 +66,102 @@ impl CSEngine {
         window.set_framebuffer_size_polling(true);
         window.set_cursor_pos_polling(true);
         window.set_scroll_polling(true);
-        // TODO: Temporary
-        // window.set_cursor_mode(glfw::CursorMode::Disabled);
+        
+        if capture_mouse {
+            window.set_cursor_mode(glfw::CursorMode::Disabled);
+        }
 
         // Move into struct for easy referencing
-        CSEngine { glfw, events, window }
+        (glfw, window, events)
+    }
+
+    pub fn configure_gl(&mut self, gl: GraphicsLibrary) {
+        if gl == GraphicsLibrary::OpenGL4_6 {
+            unsafe {
+                // Create GL context
+                gl::load_with(|symbol| self.window.get_proc_address(symbol) as *const _);
+        
+                // Depth testing
+                gl::Enable(gl::DEPTH_TEST);
+                gl::DepthFunc(gl::LESS);
+        
+                // Blending
+                // gl::Enable(gl::BLEND);
+                // gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+                gl::Disable(gl::BLEND);
+        
+                // Face culling
+                gl::Enable(gl::CULL_FACE);
+        
+                // Enable debug with callback for simple error printing
+                gl::Enable(gl::DEBUG_OUTPUT);
+                gl::DebugMessageCallback(
+                    Some(Self::debug_message_callback),
+                    std::ptr::null()
+                );
+            }
+        }
     }
 
     pub fn extension_supported(&self, extension: &str) -> bool {
         self.glfw.extension_supported(extension)
     }
+
+    // TODO: Global logging level enum that is checked here and other places to see how much to log
+    // Callback function intended to be called from C
+    extern "system" fn debug_message_callback(
+        source: u32,
+        type_: u32,
+        _id: u32,
+        severity: u32,
+        length: i32,
+        message: *const i8,
+        _user_param: *mut c_void
+    ) {
+        let type_str = match type_ {
+            gl::DEBUG_TYPE_ERROR => "ERROR",
+            gl::DEBUG_TYPE_DEPRECATED_BEHAVIOR => "DEPRECATED_BEHAVIOR",
+            gl::DEBUG_TYPE_UNDEFINED_BEHAVIOR => "UNDEFINED_BEHAVIOR",
+            gl::DEBUG_TYPE_PORTABILITY => "PORTABILITY",
+            gl::DEBUG_TYPE_PERFORMANCE => "PERFORMANCE",
+            gl::DEBUG_TYPE_MARKER => "MARKER",
+            gl::DEBUG_TYPE_PUSH_GROUP => "PUSH_GROUP",
+            gl::DEBUG_TYPE_POP_GROUP => "POP_GROUP",
+            gl::DEBUG_TYPE_OTHER => "OTHER",
+            _ => "OTHER"
+        };
+        let source_str = match source {
+            gl::DEBUG_SOURCE_API => "API",
+            gl::DEBUG_SOURCE_WINDOW_SYSTEM => "WINDOW_SYSTEM",
+            gl::DEBUG_SOURCE_SHADER_COMPILER => "SHADER_COMPILER",
+            gl::DEBUG_SOURCE_THIRD_PARTY => "THIRD_PARTY",
+            gl::DEBUG_SOURCE_APPLICATION => "APPLICATION",
+            gl::DEBUG_SOURCE_OTHER => "OTHER",
+            _ => "OTHER"
+        };
+        let severity_str = match severity {
+            gl::DEBUG_SEVERITY_HIGH => "HIGH_SEVERITY",
+            gl::DEBUG_SEVERITY_MEDIUM => "MEDIUM_SEVERITY",
+            gl::DEBUG_SEVERITY_LOW => "LOW_SEVERITY",
+            gl::DEBUG_SEVERITY_NOTIFICATION => "NOTIFICATION",
+            _ => "UNKNOWN_SEVERITY"
+        };
+        let message_cstr = unsafe {
+            let buffer = slice::from_raw_parts(message as *const u8, length as usize);
+            CString::from_vec_unchecked(buffer.to_vec())
+        };
+    
+        println!("{}::{}::{}::{}", type_str, source_str, severity_str, message_cstr.to_str().unwrap());
+    }
 }
 
 pub struct CSEngineConfig {
-    pub width: u32,
-    pub height: u32,
+    pub width: i32,
+    pub height: i32,
     pub fov: f32,
     pub title: String,
-    pub gl: GraphicsLibrary
+    pub gl: GraphicsLibrary,
+    pub capture_mouse: bool
 }
 
 impl Default for CSEngineConfig {
@@ -55,11 +171,13 @@ impl Default for CSEngineConfig {
             height: 1080,
             fov: 45.0,
             title: String::from("My Game"),
-            gl: GraphicsLibrary::OpenGL4_6 // TODO: default should be 3_3
+            gl: GraphicsLibrary::OpenGL4_6, // TODO: default should be 3_3
+            capture_mouse: true
         }
     }
 }
 
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum GraphicsLibrary {
     OpenGL4_6
 }
