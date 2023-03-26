@@ -2,26 +2,23 @@ use std::{rc::Rc, collections::HashMap, path::Path, cell::RefCell, fs::File, io:
 use cgmath::{vec3, vec2, Matrix4, Vector3, Vector2};
 use silver_gl::{Texture, Vertex, Mesh, GlImage, Skybox, ShaderProgram, ShaderCodeBundle, gl, ModelTrait, BindlessModel, ModelCreateTrait, MultiBindModel};
 use image::DynamicImage::*;
-use crate::{EngineError, Model};
+use crate::{EngineError, Model, GraphicsLibrary};
 
 pub struct ResourceManager {
+    pub gl: GraphicsLibrary,
     model_store: HashMap<String, Rc<Model>>,
     texture_store: HashMap<String, Rc<Texture>>,
     shader_store: HashMap<ShaderPathBundle, Rc<ShaderProgram>>,
     glyph_store: HashMap<GlyphMetaDeta, Rc<GlyphData>>,
     face_store: HashMap<String, freetype::Face>,
     face_library: freetype::Library,
-    supports_bindless: bool
 }
 
 // TODO: Make all loading async so that it is faster :)
 // TODO: Time to beat: ~15 seconds on laptop
 // TODO: Learn to use Rayon, Tokio
 impl ResourceManager {
-    pub fn new(supports_bindless: bool) -> Self {
-        // TODO: Once moved to engine struct, make getting extension support
-        // TODO: automatic when initializing engine
-
+    pub fn new() -> ResourceManager {
         Self {
             model_store: Default::default(),
             texture_store: Default::default(),
@@ -29,7 +26,7 @@ impl ResourceManager {
             glyph_store: Default::default(),
             face_store: Default::default(),
             face_library: freetype::Library::init().unwrap(),
-            supports_bindless
+            gl: GraphicsLibrary::None
         }
     }
 
@@ -106,10 +103,15 @@ impl ResourceManager {
             meshes.push(gl_mesh);
         }
 
-        let model: Box<dyn ModelTrait> = if self.supports_bindless {
-            Box::new(BindlessModel::new(vertices, indices, vec![], meshes))
-        } else {
-            Box::new(MultiBindModel::new(vertices, indices, vec![], meshes))
+        let model: Box<dyn ModelTrait> = match self.gl {
+            GraphicsLibrary::OpenGL4_6(_, exts) => if exts.supports_bindless {
+                Box::new(BindlessModel::new(vertices, indices, vec![], meshes))
+            } else {
+                Box::new(MultiBindModel::new(vertices, indices, vec![], meshes))
+            },
+            GraphicsLibrary::None => {
+                return Err(EngineError::ResourceManagerError(String::from("Trying to load model without selected graphics library!")))
+            },
         };
         let model: Rc<Model> = Rc::new(RefCell::new(model));
         self.model_store.insert(obj_path, Rc::clone(&model));
@@ -150,7 +152,12 @@ impl ResourceManager {
 
     fn _load_texture_2d(&mut self, path: &str) -> Result<Rc<Texture>, EngineError> {
         let image = ResourceManager::load_image(path)?;
-        let texture = Rc::new(Texture::from_2d(image));
+        let texture = match self.gl {
+            GraphicsLibrary::OpenGL4_6(_, _) => Rc::new(Texture::from_2d(image)),
+            GraphicsLibrary::None => {
+                return Err(EngineError::ResourceManagerError(String::from("Trying to load texture without selected graphics library!")))
+            },
+        };
         self.texture_store.insert(path.to_owned(), Rc::clone(&texture));
 
         Ok(texture)
@@ -166,7 +173,12 @@ impl ResourceManager {
 
     fn _load_texture_cubemap(&mut self, path: &str) -> Result<Rc<Texture>, EngineError> {
         let image = ResourceManager::load_image(path)?;
-        let texture = Rc::new(Texture::from_cubemap(image));
+        let texture = match self.gl {
+            GraphicsLibrary::OpenGL4_6(_, _) => Rc::new(Texture::from_cubemap(image)),
+            GraphicsLibrary::None => {
+                return Err(EngineError::ResourceManagerError(String::from("Trying to load texture without selected graphics library!")))
+            },
+        };
         self.texture_store.insert(path.to_owned(), Rc::clone(&texture));
 
         Ok(texture)
@@ -244,12 +256,19 @@ impl ResourceManager {
 
         let model_transforms = vec![Matrix4::<f32>::from_translation(vec3(0.0, 0.0, 0.0))];
 
-        let mut model = MultiBindModel::new(
-            vertices,
-            indices,
-            model_transforms,
-            vec![Mesh::new(0, 36)]
-        );
+        let mut model = match self.gl {
+            GraphicsLibrary::OpenGL4_6(_, _) => {
+                MultiBindModel::new(
+                    vertices,
+                    indices,
+                    model_transforms,
+                    vec![Mesh::new(0, 36)]
+                )
+            },
+            GraphicsLibrary::None => {
+                return Err(EngineError::ResourceManagerError(String::from("Trying to load model without selected graphics library!")))
+            },
+        };
         model.meshes[0].diffuse_textures.push(self.load_texture_cubemap(path)?);
 
         Ok(Skybox { model })
@@ -277,7 +296,10 @@ impl ResourceManager {
             code_bundle.fragment = Some(self.load_shader(frag)?);
         }
 
-        let shader_program = Rc::new(ShaderProgram::new(code_bundle)?);
+        let shader_program = match self.gl {
+            GraphicsLibrary::OpenGL4_6(_, _) => Rc::new(ShaderProgram::new(code_bundle)?),
+            GraphicsLibrary::None => return Err(EngineError::ResourceManagerError(String::from("Trying to load shaders without selected graphics library!"))),
+        };
 
         self.shader_store.insert(paths, Rc::clone(&shader_program));
         Ok(shader_program)
@@ -297,9 +319,14 @@ impl ResourceManager {
     // that glyphs can be loaded easily.
     pub fn load_face(&mut self, path: &str) -> Result<(), EngineError> {
         let face = self.face_library.new_face(path, 0)?;
-        self.face_store.insert(face.family_name().expect("Font should have family name!"), face);
-        
-        Ok(())
+
+        if let Some(family) = face.family_name() {
+            self.face_store.insert(family, face);
+
+            Ok(())
+        } else {
+            Err(EngineError::ResourceManagerError(String::from("The font you are attempting to load does not have a family name!")))
+        }
     }
 
     fn _load_glyph(&mut self, glyph_metadata: GlyphMetaDeta) -> Result<Rc<GlyphData>, EngineError> {
@@ -324,7 +351,12 @@ impl ResourceManager {
 
             let data = Rc::new(
                 GlyphData {
-                    texture: Texture::from_2d_ui(image),
+                    texture: match self.gl {
+                        GraphicsLibrary::OpenGL4_6(_, _) => Texture::from_2d_ui(image),
+                        GraphicsLibrary::None => {
+                            return Err(EngineError::ResourceManagerError(String::from("Trying to load fonts without selected graphics library!")))
+                        },
+                    },
                     size: vec2(glyph.bitmap().width(), glyph.bitmap().rows()),
                     bearing: vec2(glyph.bitmap_left(), glyph.bitmap_top()),
                     advance: glyph.advance().x,

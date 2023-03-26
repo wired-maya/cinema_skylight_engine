@@ -7,8 +7,8 @@ pub struct CSEngine {
     pub glfw: Glfw,
     pub events: Receiver<(f64, WindowEvent)>,
     pub window: Window,
-    pub resource_manager: ResourceManager
-    // TODO: add CSEngineConfig as private with get/setters
+    pub resource_manager: ResourceManager,
+    config: CSEngineConfig,
 }
 
 impl CSEngine {
@@ -21,17 +21,25 @@ impl CSEngine {
             config.gl
         );
 
-        // let mut resource_manager = ResourceManager::new(gl_window.extension_supported("GL_ARB_bindless_texture"));
-        let resource_manager = ResourceManager::new(false); // TODO: temp to get this working
-
         let mut engine = CSEngine {
             glfw,
             events,
             window,
-            resource_manager
+            resource_manager: ResourceManager::new(),
+            config
         };
 
-        engine.configure_gl(config.gl);
+        // Probe extension support
+        match engine.config.gl {
+            GraphicsLibrary::OpenGL4_6(_, ref mut exts) => {
+                // exts.supports_bindless = engine.extension_supported("GL_ARB_bindless_texture");
+                exts.supports_bindless = false; // TODO: temp to get this working
+            },
+            GraphicsLibrary::None => {},
+        }
+
+        engine.configure_gl();
+        engine.resource_manager.gl = engine.config.gl; // Set here so RM can react to changes in GL settings
 
         engine
     }
@@ -46,11 +54,12 @@ impl CSEngine {
         // Create window
         let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
         match gl {
-            GraphicsLibrary::OpenGL4_6 => {
+            GraphicsLibrary::OpenGL4_6(_, _) => {
                 glfw.window_hint(glfw::WindowHint::ContextVersion(4, 6));
                 glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
                 #[cfg(target_os = "macos")] glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
             },
+            GraphicsLibrary::None => {},
         }
 
         let (mut window, events) = glfw.create_window(
@@ -75,9 +84,9 @@ impl CSEngine {
         (glfw, window, events)
     }
 
-    pub fn configure_gl(&mut self, gl: GraphicsLibrary) {
-        if gl == GraphicsLibrary::OpenGL4_6 {
-            unsafe {
+    pub fn configure_gl(&mut self) {
+        match self.config.gl {
+            GraphicsLibrary::OpenGL4_6(_, _) => unsafe {
                 // Create GL context
                 gl::load_with(|symbol| self.window.get_proc_address(symbol) as *const _);
         
@@ -94,12 +103,17 @@ impl CSEngine {
                 gl::Enable(gl::CULL_FACE);
         
                 // Enable debug with callback for simple error printing
-                gl::Enable(gl::DEBUG_OUTPUT);
-                gl::DebugMessageCallback(
-                    Some(Self::debug_message_callback),
-                    std::ptr::null()
-                );
-            }
+                match self.config.debug_level {
+                    DebugLevel::High => {
+                        gl::Enable(gl::DEBUG_OUTPUT);
+                        gl::DebugMessageCallback(
+                            Some(Self::debug_message_callback_high),
+                            std::ptr::null()
+                        );
+                    },
+                }
+            },
+            GraphicsLibrary::None => {},
         }
     }
 
@@ -107,9 +121,8 @@ impl CSEngine {
         self.glfw.extension_supported(extension)
     }
 
-    // TODO: Global logging level enum that is checked here and other places to see how much to log
     // Callback function intended to be called from C
-    extern "system" fn debug_message_callback(
+    extern "system" fn debug_message_callback_high(
         source: u32,
         type_: u32,
         _id: u32,
@@ -155,13 +168,15 @@ impl CSEngine {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct CSEngineConfig {
     pub width: i32,
     pub height: i32,
     pub fov: f32,
     pub title: String,
     pub gl: GraphicsLibrary,
-    pub capture_mouse: bool
+    pub capture_mouse: bool,
+    pub debug_level: DebugLevel
 }
 
 impl Default for CSEngineConfig {
@@ -171,13 +186,44 @@ impl Default for CSEngineConfig {
             height: 1080,
             fov: 45.0,
             title: String::from("My Game"),
-            gl: GraphicsLibrary::OpenGL4_6, // TODO: default should be 3_3
-            capture_mouse: true
+            gl: GraphicsLibrary::OpenGL4_6(Default::default(), Default::default()), // TODO: default should be 3_3
+            capture_mouse: true,
+            debug_level: DebugLevel::High // TODO: change to Medium
         }
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum GraphicsLibrary {
-    OpenGL4_6
+    OpenGL4_6(OpenGL4_6Config, OpenGLExtSupport),
+    None
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct OpenGL4_6Config { }
+
+impl Default for OpenGL4_6Config {
+    fn default() -> Self {
+        Self { }
+    }
+}
+
+// Struct that contains information on extension support which the engine might need
+// so you don't need to keep probing the GL context
+#[derive(Debug, Clone, Copy)]
+pub struct OpenGLExtSupport {
+    pub supports_bindless: bool
+}
+
+impl Default for OpenGLExtSupport {
+    fn default() -> Self {
+        Self {
+            supports_bindless: false
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum DebugLevel {
+    High
 }

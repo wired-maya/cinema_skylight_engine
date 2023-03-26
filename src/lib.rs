@@ -49,6 +49,7 @@ type Model = RefCell<Box<dyn ModelTrait>>;
 // TODO:    of multi-rendering capabilities, making the multi-purpose
 // TODO:    libs too generalized.
 // TODO: Idea came from here: https://github.com/gfx-rs/gfx/blob/master/src/backend/gl/src/lib.rs
+// TODO: Look into how interesting you might be able to do things with no GL selected
 
 // TODO: Text animation
 // TODO: Use animated for intro/outro of individual text, allow for each font to have its own as well

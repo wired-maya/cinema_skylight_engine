@@ -12,7 +12,8 @@ pub enum EngineError {
     TexturelessWidget(u32),
     WidgetNotPrimitive(),
     FontError(freetype::Error),
-    FontFamilyNotFound(String)
+    FontFamilyNotFound(String),
+    ResourceManagerError(String)
 }
 
 // TODO: Write errors that suggest a solution as well
@@ -27,7 +28,8 @@ impl Display for EngineError {
             EngineError::TexturelessWidget(id) => write!(f, "This widget does not take a texuture, yet the texture {id} was provided", ),
             EngineError::WidgetNotPrimitive() => write!(f, "This is a compound widget and therefore its transform cannot be set manually. Please use the traverse_and_*() functions"),
             EngineError::FontError(font_err) => write!(f, "{}", font_err),
-            EngineError::FontFamilyNotFound(family) => write!(f, "Font family '{}' not found. This occurs when you haven't loaded a matching font via the resource manager.", family)
+            EngineError::FontFamilyNotFound(family) => write!(f, "Font family '{}' not found. This occurs when you haven't loaded a matching font via the resource manager.", family),
+            EngineError::ResourceManagerError(rm_err) => write!(f, "Resource manager had an error: {}", rm_err),
         }
     }
 }
