@@ -28,7 +28,7 @@ impl Widget2dScene {
 
         Ok(
             Widget2dScene {
-                widget_quad: create_wquad(),
+                widget_quad: create_wquad(resource_manager)?,
                 widget_shader_program,
                 render_pipeline,
                 widget,
@@ -41,8 +41,9 @@ impl Widget2dScene {
     pub fn set_widget_tree(&mut self) -> Result<(), EngineError> {
         // Clear all quad props
         unsafe {
-            self.widget_quad.tbo.clear_inner();
+            self.widget_quad.inner.get_transform_array_mut().clear_inner();
             self.widget_quad.dbo.clear_inner();
+            self.widget_quad.inner.get_meshes_mut().clear();
         };
 
         // Recursively set all widget info
@@ -50,7 +51,7 @@ impl Widget2dScene {
         self.widget.traverse_and_push_all(&mut self.widget_quad, &self.widget_shader_program, Matrix4::identity())?;
 
         // Finally send the batched transforms
-        self.widget_quad.tbo.send_data_mut();
+        self.widget_quad.inner.get_transform_array().send_data_mut();
         self.widget_quad.dbo.send_data_mut();
 
         Ok(())
@@ -58,7 +59,7 @@ impl Widget2dScene {
 
     pub fn set_widget_transforms(&mut self) -> Result<(), EngineError> {
         self.widget.traverse_and_set_transforms(&mut self.widget_quad, Matrix4::identity())?;
-        self.widget_quad.tbo.send_data_mut();
+        self.widget_quad.inner.get_transform_array().send_data_mut();
 
         Ok(())
     }
@@ -102,7 +103,7 @@ impl Scene for Widget2dScene {
             gl::BindBufferBase(gl::SHADER_STORAGE_BUFFER, 0, self.widget_quad.dbo.get_id());
         }
 
-        self.widget_quad.draw()?;
+        self.widget_quad.inner.draw(&self.widget_shader_program)?;
         self.render_pipeline.draw()?;
 
         Ok(())

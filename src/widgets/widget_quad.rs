@@ -1,8 +1,8 @@
 use cgmath::{Vector3, Vector2};
 use silver_gl::Vertex;
-use crate::widget_model::WModel;
+use crate::{widget_model::WModel, ResourceManager, EngineError};
 
-pub fn create_wquad() -> WModel {
+pub fn create_wquad(resource_manager: &ResourceManager) -> Result<WModel, EngineError> {
     // Flat panel definition
     // Starts at (0.0, 0.0) for a default top-left
     // anchor
@@ -39,6 +39,7 @@ pub fn create_wquad() -> WModel {
     ];
 
     let model = WModel::new(
+        resource_manager,
         vertices,
         indices,
         Vec::new(),

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use cgmath::{Quaternion, Matrix4, Vector2, vec3, vec4, SquareMatrix, vec2};
 use downcast_rs::{Downcast, impl_downcast};
-use silver_gl::{Texture, ShaderProgram};
+use silver_gl::{Texture, ShaderProgram, Mesh};
 use crate::{EngineError, widget_model::WModel};
 
 // TODO: To create a kind of crosshair widget that follows a point (to make animating in widgets cool),
@@ -37,7 +37,7 @@ use crate::{EngineError, widget_model::WModel};
 // TODO: Has both size and offset, so you can customize the shadow to your liking!
 
 // TODO: Line widget, you set its start and end points, or len/start/angle
-// TODO: Use line widgets to create a kind of "zoom-in-enhance" widget, where you have a
+// TODO: Use line widgets to create a magify widget, where you have a
 // TODO: box around something, a bigger version of it elsewhere, and lines connecting the
 // TODO: corners
 
@@ -128,8 +128,12 @@ pub trait Widget: Downcast {
         shader_program: &ShaderProgram,
         vec_space: Matrix4<f32>
     ) -> Result<(), EngineError> {
-        self.set_index(Some(quad.tbo.len()));
+        self.set_index(Some(quad.inner.get_transform_array().len()));
         self.set_vec_space(vec_space);
+
+        // Model draws off meshes, so push them
+        let mesh = Mesh::new(0, 6);
+        // TODO: handle transformations
         
         let matrix = self.transform_matrix();
         let data = self.widget_info();
@@ -138,7 +142,7 @@ pub trait Widget: Downcast {
         data_block.splice(..data.len(), data);
 
         unsafe {
-            quad.tbo.push_to_inner(matrix);
+            quad.inner.get_transform_array_mut().push_to_inner(matrix);
             quad.dbo.push_range_inner(data_block);
         }
 
@@ -161,7 +165,7 @@ pub trait Widget: Downcast {
 
         if let Some(index) = self.get_index() {
             unsafe {
-                quad.tbo.set_data_index_inner(matrix, index);
+                quad.inner.get_transform_array_mut().set_data_index_inner(matrix, index);
             }
         } else {
             return Err(EngineError::WidgetIndexMissing());
@@ -180,7 +184,7 @@ pub trait Widget: Downcast {
     fn set_transform(&self, quad: &mut WModel) -> Result<(), EngineError> {
         if let Some(index) = self.get_index() {
             unsafe {
-                quad.tbo.set_data_index_inner(self.transform_matrix(), index);
+                quad.inner.get_transform_array_mut().set_data_index_inner(self.transform_matrix(), index);
             }
         } else {
             return Err(EngineError::WidgetIndexMissing());
@@ -195,7 +199,7 @@ pub trait Widget: Downcast {
     // Doesn't have all in one transform because of the 3 things that make it up
     fn set_transform_send(&self, quad: &mut WModel) -> Result<(), EngineError> {
         if let Some(index) = self.get_index() {
-            quad.tbo.set_data_index(self.transform_matrix(), index);
+            quad.inner.get_transform_array_mut().set_data_index(self.transform_matrix(), index);
         } else {
             return Err(EngineError::WidgetIndexMissing());
         }

@@ -103,16 +103,7 @@ impl ResourceManager {
             meshes.push(gl_mesh);
         }
 
-        let model: Box<dyn ModelTrait> = match self.gl {
-            GraphicsLibrary::OpenGL4_6(_, exts) => if exts.supports_bindless {
-                Box::new(BindlessModel::new(vertices, indices, vec![], meshes))
-            } else {
-                Box::new(MultiBindModel::new(vertices, indices, vec![], meshes))
-            },
-            GraphicsLibrary::None => {
-                return Err(EngineError::ResourceManagerError(String::from("Trying to load model without selected graphics library!")))
-            },
-        };
+        let model: Box<dyn ModelTrait> = self.create_model(vertices, indices, vec![], meshes)?;
         let model: Rc<Model> = Rc::new(RefCell::new(model));
         self.model_store.insert(obj_path, Rc::clone(&model));
 
@@ -381,6 +372,25 @@ impl ResourceManager {
     }
 
     // TODO: add an eager font load function
+
+    pub fn create_model(
+        &self,
+        vertices: Vec<Vertex>,
+        indices: Vec<u32>,
+        model_transforms: Vec<Matrix4<f32>>,
+        meshes: Vec<Mesh>
+    ) -> Result<Box<dyn ModelTrait>, EngineError> {
+        match self.gl {
+            GraphicsLibrary::OpenGL4_6(_, exts) => if exts.supports_bindless {
+                Ok(Box::new(BindlessModel::new(vertices, indices, model_transforms, meshes)))
+            } else {
+                Ok(Box::new(MultiBindModel::new(vertices, indices, model_transforms, meshes)))
+            },
+            GraphicsLibrary::None => {
+                return Err(EngineError::ResourceManagerError(String::from("Trying to load model without selected graphics library!")))
+            },
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Hash)]
