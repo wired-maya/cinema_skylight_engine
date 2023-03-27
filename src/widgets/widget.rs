@@ -35,6 +35,14 @@ use crate::{EngineError, widget_model::WModel};
 
 // TODO: Find a way to do widget shaddows (draw a second quad w/ Gaussian blur underneath?)
 // TODO: Has both size and offset, so you can customize the shadow to your liking!
+
+// TODO: Line widget, you set its start and end points, or len/start/angle
+// TODO: Use line widgets to create a kind of "zoom-in-enhance" widget, where you have a
+// TODO: box around something, a bigger version of it elsewhere, and lines connecting the
+// TODO: corners
+
+// TODO: Add a forced individual draw function so widgets can have their own shaders (or,
+// TODO: give each shader an Option<ShaderProgram> and draw individually if it is present)
 pub trait Widget: Downcast {
     fn get_position(&self) -> Vector2<f32>;
     fn set_position(&mut self, pos: Vector2<f32>);
