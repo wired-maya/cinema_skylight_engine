@@ -1,8 +1,7 @@
 use cgmath::{Vector3, Vector2};
-use silver_gl::Vertex;
-use crate::{widget_model::WModel, ResourceManager, EngineError};
+use silver_gl::{Vertex, MultiBindModel, ModelCreateTrait, Mesh};
 
-pub fn create_wquad(resource_manager: &ResourceManager) -> Result<WModel, EngineError> {
+pub fn create_wquad() -> MultiBindModel {
     // Flat panel definition
     // Starts at (0.0, 0.0) for a default top-left
     // anchor
@@ -38,13 +37,10 @@ pub fn create_wquad(resource_manager: &ResourceManager) -> Result<WModel, Engine
         0, 2, 3
     ];
 
-    let model = WModel::new(
-        resource_manager,
+    MultiBindModel::new(
         vertices,
         indices,
         Vec::new(),
-        Vec::new()
-    );
-
-    model
+        vec![Mesh::new(0, 6)]
+    )
 }

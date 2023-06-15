@@ -2,7 +2,7 @@ use std::rc::Rc;
 use cgmath::{Quaternion, Matrix4, Vector2, vec3, vec4, SquareMatrix, vec2};
 use downcast_rs::{Downcast, impl_downcast};
 use silver_gl::{Texture, ShaderProgram, Mesh};
-use crate::{EngineError, widget_model::WModel};
+use crate::{EngineError, widget_model::WModel, ResourceManager};
 
 // TODO: To create a kind of crosshair widget that follows a point (to make animating in widgets cool),
 // TODO: have a widget (child of top-level widget, preferably on the bottom of the vec so it draws
@@ -230,6 +230,10 @@ pub trait Widget: Downcast {
         }
         
         Ok(())
+    }
+
+    fn draw(&self) -> Result<(), EngineError> {
+        
     }
 }
 
