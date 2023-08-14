@@ -31,6 +31,8 @@ use crate::{EngineError, ResourceManager};
 
 // TODO: Find ways to optimize traverse_and_push_all by only pushing/dealing with changes
 
+// TODO: Replace "1024" wish "DataBlockSize" constant
+
 // TODO: Find a way to do widget shaddows (draw a second quad w/ Gaussian blur underneath?)
 // TODO: Has both size and offset, so you can customize the shadow to your liking!
 
@@ -39,11 +41,9 @@ use crate::{EngineError, ResourceManager};
 // TODO: box around something, a bigger version of it elsewhere, and lines connecting the
 // TODO: corners
 
-// TODO: Defaults aren't handled by the engine, rather they are handled by the script then
-// TODO: used in the interpreter. The script directly links to shader programs for example
-
+// TODO: Add a forced individual draw function so widgets can have their own shaders (or,
+// TODO: give each shader an Option<ShaderProgram> and draw individually if it is present)
 pub trait Widget: Downcast {
-    // Getters and Setters (required properties essentially)
     fn get_position(&self) -> Vector2<f32>;
     fn set_position(&mut self, pos: Vector2<f32>);
     fn get_rotation(&self) -> Quaternion<f32>;
@@ -53,20 +53,6 @@ pub trait Widget: Downcast {
     fn set_size(&mut self, width: f32, height: f32);
     fn get_children(&self) -> &Vec<Box<dyn Widget>>;
     fn get_children_mut(&mut self) -> &mut Vec<Box<dyn Widget>>;
-    // These are used to optimize changing textures and transforms
-    fn get_index(&self) -> Option<usize>;
-    fn set_index(&mut self, i: Option<usize>);
-    // Used for relative widgets
-    fn get_vec_space(&self) -> Matrix4<f32>;
-    fn set_vec_space(&mut self, vec_space: Matrix4<f32>);
-    // All in one setter to simplify process of setting textures
-    // This should be the only way to set textures, since batching isn't something you need
-    // to worry about.
-    // Only used for texure primitive widgets
-    fn get_texture(&self) -> &Option<Rc<Texture>> { &None } // Used for texture primitive widgets
-    fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> { Err(EngineError::TexturelessWidget(texture.get_id())) }
-    fn get_shader_program(&self) -> &Rc<ShaderProgram>;
-    fn set_shader_program(&mut self, shader_program: Rc<ShaderProgram>);
 
     // Calculates transform matrix for the vertex shader
     fn transform_matrix(&self) -> Matrix4<f32> {
@@ -81,10 +67,8 @@ pub trait Widget: Downcast {
         
         matrix
     }
-
-    // Transforms between screen-space pixels and in-engine positions
-    // TODO: when doing the point approach, rename these to point functions, then have a top-top layer widget
-    // TODO: that converts from points to pixels with accompanying conversion functions.
+    
+    // Transforms current size to pixels
     fn get_size_pixels(&self) -> (f32, f32) {
         let (width, height) = self.get_size();
         let mut size_vec = vec4(width, height, 0.0, 1.0);
@@ -93,6 +77,7 @@ pub trait Widget: Downcast {
 
         (size_vec.x, size_vec.y)
     }
+
     fn set_size_pixels(&mut self, width: f32, height: f32) {
         let mut size_vec = vec4(width, height, 0.0, 1.0);
 
@@ -101,6 +86,7 @@ pub trait Widget: Downcast {
 
         self.set_size(size_vec.x, size_vec.y);
     }
+
     fn get_position_pixels(&self) -> Vector2<f32> {
         let pos = self.get_position();
         let mut pos_vec = vec4(pos.x, pos.y, 0.0, 1.0);
@@ -109,6 +95,7 @@ pub trait Widget: Downcast {
 
         vec2(pos_vec.x, pos_vec.y)
     }
+
     fn set_position_pixels(&mut self, pos: Vector2<f32>) {
         let mut pos_vec = vec4(pos.x, pos.y, 0.0, 1.0);
 
@@ -118,8 +105,139 @@ pub trait Widget: Downcast {
         self.set_position(vec2(pos_vec.x, pos_vec.y));
     }
 
+    // These are used to optimize changing textures and transforms
+    fn get_index(&self) -> Option<usize>;
+    fn set_index(&mut self, i: Option<usize>);
+
+    // Used for relative widgets
+    fn get_vec_space(&self) -> Matrix4<f32>;
+    fn set_vec_space(&mut self, vec_space: Matrix4<f32>);
+
     // Send visual properties of the widget to shader program
-    fn update_shader_program(&mut self);
+    fn widget_info(&mut self) -> Vec<u8>;
+
+    // Traverses tree in linearized order, pushing the widgets' information to the quad
+    // Assumes that clear_inner has been run on the tbo and clear has been run on the
+    // mesh's diffuse textures, that send_data_mut is ran afterwards, and that a shader
+    // program is bound.
+    // Panics if there are less than 1 meshes in quad.
+    // Needs to be run when widget tree is changed
+    fn traverse_and_push_all(
+        &mut self,
+        quad: &mut WModel,
+        shader_program: &ShaderProgram,
+        vec_space: Matrix4<f32>
+    ) -> Result<(), EngineError> {
+        self.set_index(Some(quad.inner.get_transform_array().len()));
+        self.set_vec_space(vec_space);
+
+        // Model draws off meshes, so push them
+        let mesh = Mesh::new(0, 6);
+        // TODO: handle transformations
+        
+        let matrix = self.transform_matrix();
+        let data = self.widget_info();
+        let mut data_block = vec![0; 1024];
+
+        data_block.splice(..data.len(), data);
+
+        unsafe {
+            quad.inner.get_transform_array_mut().push_to_inner(matrix);
+            quad.dbo.push_range_inner(data_block);
+        }
+
+        for widget in self.get_children_mut() {
+            widget.traverse_and_push_all(quad, shader_program, matrix)?;
+        }
+
+        Ok(())
+    }
+
+    // Index needs to be set, meaning above function needs to have been run
+    // Cannot be run after widget tree is modified without push_all being run first
+    // Used to batch together transforms
+    // This is meant to to be run with a send_data afterwards, since it's to batch
+    // transforms
+    fn traverse_and_set_transforms(&mut self, quad: &mut WModel, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
+        self.set_vec_space(vec_space);
+
+        let matrix = self.transform_matrix();
+
+        if let Some(index) = self.get_index() {
+            unsafe {
+                quad.inner.get_transform_array_mut().set_data_index_inner(matrix, index);
+            }
+        } else {
+            return Err(EngineError::WidgetIndexMissing());
+        }
+
+        for widget in self.get_children_mut() {
+            widget.traverse_and_set_transforms(quad, matrix)?;
+        }
+        
+        Ok(())
+    }
+
+    // These set inner transforms and textures, so you can batch-transform a selection
+    // of widgets without sacrificing performance
+    // Requires a send_data to be send afterwards
+    fn set_transform(&self, quad: &mut WModel) -> Result<(), EngineError> {
+        if let Some(index) = self.get_index() {
+            unsafe {
+                quad.inner.get_transform_array_mut().set_data_index_inner(self.transform_matrix(), index);
+            }
+        } else {
+            return Err(EngineError::WidgetIndexMissing());
+        }
+        
+        Ok(())
+    }
+
+    // Sets index properties
+    // This are meant to be run standalone, so only when updating one thing
+    // If performance is an issue, use one of the above
+    // Doesn't have all in one transform because of the 3 things that make it up
+    fn set_transform_send(&self, quad: &mut WModel) -> Result<(), EngineError> {
+        if let Some(index) = self.get_index() {
+            quad.inner.get_transform_array_mut().set_data_index(self.transform_matrix(), index);
+        } else {
+            return Err(EngineError::WidgetIndexMissing());
+        }
+        
+        Ok(())
+    }
+
+    // All in one setter to simplify process of setting textures
+    // This should be the only way to set textures, since batching isn't something you need
+    // to worry about.
+    // Only used for texure primitive widgets
+    fn get_texture(&self) -> &Option<Rc<Texture>> { &None } // Used for texture primitive widgets
+    fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> { Err(EngineError::TexturelessWidget(texture.get_id())) }
+
+    // Cannot be run after widget tree is modified without push_all being run first
+    // Since everything is aligned in 1KB blocks, this only sends the affected ranges
+    // as an optimisation.
+    // Requires buffer data to be mut, but does not require a send_data_mut afterwards
+    fn traverse_and_send_info(&mut self, quad: &mut WModel) -> Result<(), EngineError> {
+        if let Some(index) = self.get_index() {
+            quad.dbo.set_data_range(self.widget_info(), index * 1024);
+        } else {
+            return Err(EngineError::WidgetIndexMissing());
+        }
+
+        for widget in self.get_children_mut() {
+            widget.traverse_and_send_info(quad)?;
+        }
+        
+        Ok(())
+    }
+
+    fn draw(&self) -> Result<(), EngineError> {
+        
+    }
+
+    fn get_shader_program(&self) -> &Rc<ShaderProgram>;
+    fn set_shader_program(&mut self, shader_program: Rc<ShaderProgram>);
 }
 
 // Instead of using an enum to remove downcasting, this allows for a new widget

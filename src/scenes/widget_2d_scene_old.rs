@@ -34,6 +34,40 @@ impl Widget2dScene {
             }
         )
     }
+
+    // All in one functions to simplify the recusive widget-specific function
+    pub fn set_widget_tree(&mut self) -> Result<(), EngineError> {
+        // Clear all quad props
+        unsafe {
+            self.widget_quad.inner.get_transform_array_mut().clear_inner();
+            self.widget_quad.dbo.clear_inner();
+            self.widget_quad.inner.get_meshes_mut().clear();
+        };
+
+        // Recursively set all widget info
+        self.shader_program.use_program();
+        self.widget.traverse_and_push_all(&mut self.widget_quad, &self.shader_program, Matrix4::identity())?;
+
+        // Finally send the batched transforms
+        self.widget_quad.inner.get_transform_array().send_data_mut();
+        self.widget_quad.dbo.send_data_mut();
+
+        Ok(())
+    }
+
+    pub fn set_widget_transforms(&mut self) -> Result<(), EngineError> {
+        self.widget.traverse_and_set_transforms(&mut self.widget_quad, Matrix4::identity())?;
+        self.widget_quad.inner.get_transform_array().send_data_mut();
+
+        Ok(())
+    }
+
+    // Requires shader program use
+    pub fn send_widget_info(&mut self) -> Result<(), EngineError> {
+        self.widget.traverse_and_send_info(&mut self.widget_quad)?;
+
+        Ok(())
+    }
 }
 
 impl Scene for Widget2dScene {
