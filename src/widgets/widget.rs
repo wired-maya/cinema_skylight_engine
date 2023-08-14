@@ -53,9 +53,6 @@ pub trait Widget: Downcast {
     fn set_size(&mut self, width: f32, height: f32);
     fn get_children(&self) -> &Vec<Box<dyn Widget>>;
     fn get_children_mut(&mut self) -> &mut Vec<Box<dyn Widget>>;
-    // These are used to optimize changing textures and transforms
-    fn get_index(&self) -> Option<usize>;
-    fn set_index(&mut self, i: Option<usize>);
     // Used for relative widgets
     fn get_vec_space(&self) -> Matrix4<f32>;
     fn set_vec_space(&mut self, vec_space: Matrix4<f32>);
@@ -85,6 +82,9 @@ pub trait Widget: Downcast {
     // Transforms between screen-space pixels and in-engine positions
     // TODO: when doing the point approach, rename these to point functions, then have a top-top layer widget
     // TODO: that converts from points to pixels with accompanying conversion functions.
+    // TODO: Point could rather be just a simple constant which multiplies from position (points) to position
+    // TODO: (resolution). These are just then in a position struct/enum that can convert between and is
+    // TODO: passed between things.
     fn get_size_pixels(&self) -> (f32, f32) {
         let (width, height) = self.get_size();
         let mut size_vec = vec4(width, height, 0.0, 1.0);
@@ -120,6 +120,15 @@ pub trait Widget: Downcast {
 
     // Send visual properties of the widget to shader program
     fn update_shader_program(&mut self);
+
+    fn draw(&self) -> Result<(), EngineError> {
+        // Draw bottom-most widgets first
+        for widget in self.get_children() {
+            
+        }
+
+        Ok(())
+    }
 }
 
 // Instead of using an enum to remove downcasting, this allows for a new widget
