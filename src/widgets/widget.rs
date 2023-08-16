@@ -152,12 +152,12 @@ pub trait Widget: Downcast {
 
     // Draw command should be called from top down, in which case always use
     // Matrix4::identity()
-    fn draw(&self, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
+    fn draw(&mut self, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
         self.set_vec_space(vec_space);
         let transform_matrix = vec_space * self.transform_matrix();
 
         // Draw bottom-most widgets first
-        for widget in self.get_children() {
+        for widget in self.get_children_mut() {
             widget.draw(transform_matrix)?;
         }
 
@@ -168,11 +168,11 @@ pub trait Widget: Downcast {
         // Ignores whether the properties are present so that the pre-made widgets
         // "make available" certain props
         unsafe {
-            sp.set_mat4_unsafe("transform", &transform_matrix);
+            sp.set_mat4_unsafe("transform", &transform_matrix)?;
         }
 
         self.update_shader_program()?;
-        self.get_model().draw(sp);
+        self.get_model().draw(sp)?;
 
         Ok(())
     }

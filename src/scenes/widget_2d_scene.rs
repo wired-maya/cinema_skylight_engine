@@ -22,7 +22,7 @@ impl Scene for Widget2dScene {
 
         self.render_pipeline.bind();
 
-        for widget in &self.children {
+        for widget in &mut self.children {
             widget.draw(Matrix4::identity())?;
         }
 

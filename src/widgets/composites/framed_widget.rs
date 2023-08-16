@@ -2,23 +2,8 @@ use cgmath::{Vector4, vec2};
 
 use crate::{primitives::{BackgroundWidget, BorderWidget}, Widget};
 
-pub trait FramedWidget: Widget + Default {
+pub trait FramedWidget: Widget {
     type Inner: Widget; // Type of the widget to be held inside the frame
-
-    fn from_primitives(
-        background: BackgroundWidget,
-        inner: Self::Inner,
-        border: BorderWidget
-    ) -> Self {
-        let mut widget = Self::default();
-        let children = widget.get_children_mut();
-
-        children.push(Box::new(background));
-        children.push(Box::new(inner));
-        children.push(Box::new(border));
-
-        widget
-    }
 
     // Default order is BackgroundWidget, Inner Widget, BorderWidget,
     // if you change it when implementing a new framed widget then you
