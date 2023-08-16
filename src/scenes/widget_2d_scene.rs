@@ -1,3 +1,4 @@
+use cgmath::{Matrix4, SquareMatrix};
 use silver_gl::{RenderPipeline, gl};
 use crate::{EngineError, Widget, Scene};
 
@@ -8,25 +9,11 @@ pub struct Widget2dScene {
     height: i32
 }
 
-impl Widget2dScene {
-    pub fn update_tree(&mut self) {
-        self.render_pipeline.unlink();
-
-        for widget in &mut self.children {
-            widget.update_tree();
-            self.render_pipeline.link_to_fb(widget.get_framebuffer());
-        }
-    }
-}
-
 impl Scene for Widget2dScene {
+    fn get_size(&self) -> (i32, i32) { (self.width, self.height) }
     fn set_size(&mut self, width: i32, height: i32) -> Result<(), EngineError> {
         self.render_pipeline.set_size(width, height)?;
         
-        for widget in &mut self.children {
-            widget.resize_framebuffers(width, height)?;
-        }
-
         Ok(())
     }
 
@@ -36,7 +23,7 @@ impl Scene for Widget2dScene {
         self.render_pipeline.bind();
 
         for widget in &self.children {
-            widget.draw()?;
+            widget.draw(Matrix4::identity())?;
         }
 
         self.render_pipeline.draw()?;

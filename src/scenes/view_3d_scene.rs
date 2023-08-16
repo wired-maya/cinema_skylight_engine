@@ -50,6 +50,7 @@ impl View3DScene {
 }
 
 impl Scene for View3DScene {
+    fn get_size(&self) -> (i32, i32) { (self.camera.width as i32, self.camera.height as i32) }
     fn set_size(&mut self, width: i32, height: i32) -> Result<(), EngineError> {
         self.render_pipeline.set_size(width, height)?;
         self.camera.width = width as f32;
