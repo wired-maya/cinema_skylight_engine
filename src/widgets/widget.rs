@@ -1,8 +1,8 @@
 use std::rc::Rc;
 use cgmath::{Quaternion, Matrix4, Vector2, vec3, vec4, SquareMatrix, vec2};
 use downcast_rs::{Downcast, impl_downcast};
-use silver_gl::{Texture, ShaderProgram, Mesh};
-use crate::{EngineError, ResourceManager};
+use silver_gl::{Texture, ShaderProgram, Framebuffer};
+use crate::EngineError;
 
 // TODO: To create a kind of crosshair widget that follows a point (to make animating in widgets cool),
 // TODO: have a widget (child of top-level widget, preferably on the bottom of the vec so it draws
@@ -60,24 +60,29 @@ pub trait Widget: Downcast {
     // This should be the only way to set textures, since batching isn't something you need
     // to worry about.
     // Only used for texure primitive widgets
-    fn get_texture(&self) -> &Option<Rc<Texture>> { &None } // Used for texture primitive widgets
+    fn get_texture(&self) -> &Option<Rc<Texture>> { &None }
     fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> { Err(EngineError::TexturelessWidget(texture.get_id())) }
     fn get_shader_program(&self) -> &Rc<ShaderProgram>;
     fn set_shader_program(&mut self, shader_program: Rc<ShaderProgram>);
+    fn get_framebuffer(&self) -> &Framebuffer;
+    fn set_framebuffer(&mut self, framebuffer: Framebuffer);
+
+
+    // TODO: Rewrite relative widget transformations and pixel conversions to use new method
 
     // Calculates transform matrix for the vertex shader
-    fn transform_matrix(&self) -> Matrix4<f32> {
-        let pos = self.get_position();
-        let mut matrix = Matrix4::<f32>::from_translation(vec3(pos.x, pos.y, 0.0));
-        let (width, height) = self.get_size();
-        matrix = matrix * Matrix4::<f32>::from_nonuniform_scale(width, height, 1.0);
-        matrix = matrix * Matrix4::<f32>::from(self.get_rotation());
-        // TODO: Add option to change where the widget is rotated from
-        // TODO: This could be implemented by transforming by relative points then rotating
-        matrix = self.get_vec_space() * matrix;
+    // fn transform_matrix(&self) -> Matrix4<f32> {
+    //     let pos = self.get_position();
+    //     let mut matrix = Matrix4::<f32>::from_translation(vec3(pos.x, pos.y, 0.0));
+    //     let (width, height) = self.get_size();
+    //     matrix = matrix * Matrix4::<f32>::from_nonuniform_scale(width, height, 1.0);
+    //     matrix = matrix * Matrix4::<f32>::from(self.get_rotation());
+    //     // TODO: Add option to change where the widget is rotated from
+    //     // TODO: This could be implemented by transforming by relative points then rotating
+    //     matrix = self.get_vec_space() * matrix;
         
-        matrix
-    }
+    //     matrix
+    // }
 
     // Transforms between screen-space pixels and in-engine positions
     // TODO: when doing the point approach, rename these to point functions, then have a top-top layer widget
@@ -85,47 +90,84 @@ pub trait Widget: Downcast {
     // TODO: Point could rather be just a simple constant which multiplies from position (points) to position
     // TODO: (resolution). These are just then in a position struct/enum that can convert between and is
     // TODO: passed between things.
-    fn get_size_pixels(&self) -> (f32, f32) {
-        let (width, height) = self.get_size();
-        let mut size_vec = vec4(width, height, 0.0, 1.0);
+    // fn get_size_pixels(&self) -> (f32, f32) {
+    //     let (width, height) = self.get_size();
+    //     let mut size_vec = vec4(width, height, 0.0, 1.0);
 
-        size_vec = self.get_vec_space() * size_vec;
+    //     size_vec = self.get_vec_space() * size_vec;
 
-        (size_vec.x, size_vec.y)
+    //     (size_vec.x, size_vec.y)
+    // }
+    // fn set_size_pixels(&mut self, width: f32, height: f32) {
+    //     let mut size_vec = vec4(width, height, 0.0, 1.0);
+
+    //     let inverted_vec_space = self.get_vec_space().invert().expect("Transformation matrix should be invertible");
+    //     size_vec = inverted_vec_space * size_vec;
+
+    //     self.set_size(size_vec.x, size_vec.y);
+    // }
+    // fn get_position_pixels(&self) -> Vector2<f32> {
+    //     let pos = self.get_position();
+    //     let mut pos_vec = vec4(pos.x, pos.y, 0.0, 1.0);
+
+    //     pos_vec = self.get_vec_space() * pos_vec;
+
+    //     vec2(pos_vec.x, pos_vec.y)
+    // }
+    // fn set_position_pixels(&mut self, pos: Vector2<f32>) {
+    //     let mut pos_vec = vec4(pos.x, pos.y, 0.0, 1.0);
+
+    //     let inverted_vec_space = self.get_vec_space().invert().expect("Transformation matrix should be invertible");
+    //     pos_vec = inverted_vec_space * pos_vec;
+
+    //     self.set_position(vec2(pos_vec.x, pos_vec.y));
+    // }
+
+    // Intended only to be ran when the scene is resized, not when widget is
+    // Framebuffer is the size of screen to simplify transformations as well as allow more
+    // advanced effects
+    // Size/pos of the widget is in pixels, and is handled in frag shader
+    fn resize_framebuffers(&mut self, width: i32, height: i32) -> Result<(), EngineError> {
+        self.get_framebuffer().set_size(width, height)?;
+
+        for widget in self.get_children_mut() {
+            widget.resize_framebuffers(width, height)?;
+        }
+
+        Ok(())
     }
-    fn set_size_pixels(&mut self, width: f32, height: f32) {
-        let mut size_vec = vec4(width, height, 0.0, 1.0);
 
-        let inverted_vec_space = self.get_vec_space().invert().expect("Transformation matrix should be invertible");
-        size_vec = inverted_vec_space * size_vec;
+    // Needs to be run whenever a widget is inserted/removed or order is changed
+    // Full widget tree rebuild does not need to be triggered if the widget parent
+    // to any modifications is rebuilt
+    // TODO: needs to update parent pixel ratio property
+    fn update_tree(&mut self) {
+        let fb = self.get_framebuffer();
 
-        self.set_size(size_vec.x, size_vec.y);
-    }
-    fn get_position_pixels(&self) -> Vector2<f32> {
-        let pos = self.get_position();
-        let mut pos_vec = vec4(pos.x, pos.y, 0.0, 1.0);
+        fb.unlink();
 
-        pos_vec = self.get_vec_space() * pos_vec;
+        for widget in self.get_children_mut() {
+            widget.update_tree();
 
-        vec2(pos_vec.x, pos_vec.y)
-    }
-    fn set_position_pixels(&mut self, pos: Vector2<f32>) {
-        let mut pos_vec = vec4(pos.x, pos.y, 0.0, 1.0);
-
-        let inverted_vec_space = self.get_vec_space().invert().expect("Transformation matrix should be invertible");
-        pos_vec = inverted_vec_space * pos_vec;
-
-        self.set_position(vec2(pos_vec.x, pos_vec.y));
+            fb.link_to_fb(widget.get_framebuffer());
+        }
     }
 
     // Send visual properties of the widget to shader program
-    fn update_shader_program(&mut self);
+    fn update_shader_program(&self);
 
     fn draw(&self) -> Result<(), EngineError> {
         // Draw bottom-most widgets first
         for widget in self.get_children() {
-            
+            widget.draw()?;
         }
+
+        let sp = self.get_shader_program();
+        let fb = self.get_framebuffer();
+
+        sp.use_program();
+        self.update_shader_program();
+        fb.draw(sp);
 
         Ok(())
     }
