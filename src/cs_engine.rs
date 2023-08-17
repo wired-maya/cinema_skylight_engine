@@ -95,9 +95,9 @@ impl CSEngine {
                 gl::DepthFunc(gl::LESS);
         
                 // Blending
-                // gl::Enable(gl::BLEND);
-                // gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-                gl::Disable(gl::BLEND);
+                gl::Enable(gl::BLEND);
+                gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+                // gl::Disable(gl::BLEND);
         
                 // Face culling
                 gl::Enable(gl::CULL_FACE);
