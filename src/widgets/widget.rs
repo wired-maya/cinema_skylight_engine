@@ -162,15 +162,12 @@ pub trait Widget: Downcast {
             widget.draw(transform_matrix)?;
         }
 
+        // Set widget's transformation matrix
+        self.get_model_mut().get_transform_array_mut().set_data_mut(vec![transform_matrix]);
+
         let sp = self.get_shader_program();
 
         sp.use_program();
-
-        // Ignores whether the properties are present so that the pre-made widgets
-        // "make available" certain props
-        unsafe {
-            sp.set_mat4_unsafe("transform", &transform_matrix)?;
-        }
 
         self.update_shader_program()?;
         self.get_model().draw(sp)?;

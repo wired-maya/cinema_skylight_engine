@@ -69,6 +69,9 @@ impl Widget for TextureWidget {
         if mesh.is_none() {
             self.model.meshes.push(Mesh::new(0, 0));
             mesh = self.model.meshes.get_mut(0);
+            mesh.expect("Mesh should be present").diffuse_textures.push(texture);
+
+            return Ok(());
         }
 
         mesh.expect("Mesh should be present").diffuse_textures[0] = texture;
