@@ -40,7 +40,6 @@ pub trait FramedWidget: Widget {
 
     // Reduces vec space of inner widget by padding and borders
     fn draw_children(&mut self, vec_space: &Matrix4<f32>) -> Result<(), EngineError> {
-        println!("hello");
         let padding = self.get_padding();
         let border_widths = self.get_border_widths();
 
