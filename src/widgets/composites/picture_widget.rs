@@ -1,7 +1,7 @@
 use std::rc::Rc;
-use cgmath::{Vector4, Quaternion, Vector2, Matrix4};
-use silver_gl::{ShaderProgram, MultiBindModel};
-use crate::{Widget, EngineError, primitives::TextureWidget, FramedWidget};
+use cgmath::{Vector4, Quaternion, Vector2, Matrix4, vec2, SquareMatrix};
+use silver_gl::{ShaderProgram, MultiBindModel, Texture};
+use crate::{Widget, EngineError, primitives::{TextureWidget, BackgroundWidget, BorderWidget}, FramedWidget, create_wquad};
 
 pub struct PictureWidget {
     pub position: Vector2<f32>,
@@ -14,6 +14,36 @@ pub struct PictureWidget {
     pub vec_space: Matrix4<f32>,
 
     pub padding: Vector4<f32>,
+}
+
+impl PictureWidget {
+    pub fn new(
+        picture_shader_program: Rc<ShaderProgram>,
+        background_shader_program: Rc<ShaderProgram>,
+        texture_shader_program: Rc<ShaderProgram>,
+        border_shader_program: Rc<ShaderProgram>,
+        padding: Vector4<f32>,
+        background_colour: Vector4<f32>,
+        texture: Rc<Texture>,
+        border_colour: Vector4<f32>,
+        border_widths: Vector4<f32>
+    ) -> Self {
+        Self {
+            position: vec2(0.0, 0.0),
+            rotation: Quaternion::new(1.0, 0.0, 0.0, 0.0),
+            width: 1.0,
+            height: 1.0,
+            children: vec![
+                Box::new(BackgroundWidget::new(background_shader_program, background_colour)),
+                Box::new(TextureWidget::new(texture_shader_program, texture)),
+                Box::new(BorderWidget::new(border_shader_program, border_colour, border_widths))
+            ],
+            shader_program: picture_shader_program,
+            model: create_wquad(),
+            vec_space: Matrix4::identity(),
+            padding
+        }
+    }
 }
 
 impl FramedWidget for PictureWidget {

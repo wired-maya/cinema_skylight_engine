@@ -3,6 +3,7 @@ use cgmath::{Quaternion, Matrix4, Vector3};
 
 use crate::Model;
 
+// TODO: rewrite similar to widgets
 pub struct GameObject {
     pub position: Vector3<f32>,
     pub rotation: Quaternion<f32>,

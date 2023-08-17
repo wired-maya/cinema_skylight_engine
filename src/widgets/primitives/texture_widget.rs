@@ -1,7 +1,7 @@
 use std::rc::Rc;
-use cgmath::{Quaternion, Vector2, Matrix4};
-use silver_gl::{ShaderProgram, MultiBindModel, Texture};
-use crate::{Widget, EngineError};
+use cgmath::{Quaternion, Vector2, Matrix4, vec2, SquareMatrix};
+use silver_gl::{ShaderProgram, MultiBindModel, Texture, Mesh};
+use crate::{Widget, EngineError, create_wquad};
 
 pub struct TextureWidget {
     pub position: Vector2<f32>,
@@ -12,6 +12,25 @@ pub struct TextureWidget {
     pub shader_program: Rc<ShaderProgram>,
     pub model: MultiBindModel,
     pub vec_space: Matrix4<f32>,
+}
+
+impl TextureWidget {
+    pub fn new(shader_program: Rc<ShaderProgram>, texture: Rc<Texture>) -> Self {
+        let mut widget = Self {
+            position: vec2(0.0, 0.0),
+            rotation: Quaternion::new(1.0, 0.0, 0.0, 0.0),
+            width: 1.0,
+            height: 1.0,
+            children: Vec::new(),
+            shader_program,
+            model: create_wquad(),
+            vec_space: Matrix4::identity()
+        };
+
+        widget.model.meshes[0].diffuse_textures.push(texture);
+
+        widget
+    }
 }
 
 impl Widget for TextureWidget {
@@ -37,9 +56,25 @@ impl Widget for TextureWidget {
     fn get_vec_space(&self) -> Matrix4<f32> { self.vec_space }
     fn set_vec_space(&mut self, vec_space: Matrix4<f32>) { self.vec_space = vec_space }
 
-    // TODO: Make this work w/ current system
-    fn get_texture(&self) -> Option<&Rc<Texture>> { None }
-    fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> { Err(EngineError::TexturelessWidget(texture.get_id())) }
+    fn get_texture(&self) -> Option<&Rc<Texture>> {
+        self.model.meshes.get(0)?.diffuse_textures.get(0)
+    }
+    fn get_texture_mut(&mut self) -> Option<&mut Rc<Texture>> {
+        self.model.meshes.get_mut(0)?.diffuse_textures.get_mut(0)
+    }
+    // If mech is missing, inserts a default empty one
+    fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> {
+        let mut mesh = self.model.meshes.get_mut(0);
+
+        if mesh.is_none() {
+            self.model.meshes.push(Mesh::new(0, 0));
+            mesh = self.model.meshes.get_mut(0);
+        }
+
+        mesh.expect("Mesh should be present").diffuse_textures[0] = texture;
+
+        Ok(())
+    }
 
     // No need to update SP
     fn update_shader_program(&self) -> Result<(), EngineError> { Ok(()) }

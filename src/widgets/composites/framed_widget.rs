@@ -1,7 +1,7 @@
 use cgmath::{Vector4, vec2};
-
 use crate::{primitives::{BackgroundWidget, BorderWidget}, Widget};
 
+// TODO: add from funcs
 pub trait FramedWidget: Widget {
     type Inner: Widget; // Type of the widget to be held inside the frame
 

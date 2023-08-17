@@ -1,7 +1,7 @@
 use std::rc::Rc;
-use cgmath::{Vector4, Quaternion, Vector2, Matrix4};
+use cgmath::{Vector4, Quaternion, Vector2, Matrix4, vec2, SquareMatrix};
 use silver_gl::{ShaderProgram, MultiBindModel};
-use crate::{Widget, EngineError};
+use crate::{Widget, EngineError, create_wquad};
 
 pub struct BorderWidget {
     pub position: Vector2<f32>,
@@ -22,7 +22,24 @@ pub struct BorderWidget {
 
 // TODO: Add get/set border_widths in pixels
 impl BorderWidget {
-    
+    pub fn new(
+        shader_program: Rc<ShaderProgram>,
+        colour: Vector4<f32>,
+        border_widths: Vector4<f32>
+    ) -> Self {
+        Self {
+            position: vec2(0.0, 0.0),
+            rotation: Quaternion::new(1.0, 0.0, 0.0, 0.0),
+            width: 1.0,
+            height: 1.0,
+            children: Vec::new(),
+            shader_program,
+            model: create_wquad(),
+            vec_space: Matrix4::identity(),
+            colour,
+            border_widths
+        }
+    }
 }
 
 impl Widget for BorderWidget {

@@ -1,7 +1,5 @@
 use std::rc::Rc;
-
 use silver_gl::{Framebuffer, GlError, RenderPipeline, Texture, gl};
-
 use crate::EngineError;
 
 pub struct Widget2dRenderPipeline {
@@ -14,7 +12,7 @@ impl Widget2dRenderPipeline {
     pub fn new(
         width: i32,
         height: i32
-    ) -> Result<Widget2dRenderPipeline, EngineError> {
+    ) -> Result<Self, EngineError> {
         let intermediate_fb = Framebuffer::new(
             width,
             height,
@@ -23,7 +21,7 @@ impl Widget2dRenderPipeline {
         )?;
 
         Ok(
-            Widget2dRenderPipeline {
+            Self {
                 intermediate_fb,
                 width,
                 height

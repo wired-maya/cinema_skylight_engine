@@ -66,6 +66,7 @@ pub trait Widget: Downcast {
     // to worry about.
     // Only used for texure primitive widgets
     fn get_texture(&self) -> Option<&Rc<Texture>> { None }
+    fn get_texture_mut(&mut self) -> Option<&mut Rc<Texture>> { None }
     fn set_texture(&mut self, texture: Rc<Texture>) -> Result<(), EngineError> { Err(EngineError::TexturelessWidget(texture.get_id())) }
     
     fn get_shader_program(&self) -> &Rc<ShaderProgram>;

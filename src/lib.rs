@@ -30,8 +30,12 @@ use silver_gl::ModelTrait;
 // Type aliases to make the multi-GL usage easier
 type Model = RefCell<Box<dyn ModelTrait>>;
 
-// TODO: Rewrite so that resource manager is used only by the user --
-// TODO: that is, constructors do not take shader bundles, but shaders directly, etc.
+// TODO: add default shaders for all widgets that are available anywhere,
+// TODO: and use them to create default for every widget (and remove their new funcs)
+
+// TODO: remember to set all properties to sensible pubs!
+
+// TODO: expand on all primitive widgets (fit style for texture widget, etc)
 
 // TODO: To support multiple OpenGL versions, DX11-12, and Vulkan
 // TODO: To do this, move all GL-specific code into their separate

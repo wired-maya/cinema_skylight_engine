@@ -23,7 +23,7 @@ impl View3DRenderPipeline {
         height: i32,
         lighting_pass_shader_paths: ShaderPathBundle,
         blur_shader_paths: ShaderPathBundle,
-    ) -> Result<View3DRenderPipeline, EngineError> {
+    ) -> Result<Self, EngineError> {
         let lighting_pass_shader_program = resource_manager.load_shader_program(lighting_pass_shader_paths)?;
         let blur_shader_program = resource_manager.load_shader_program(blur_shader_paths)?;
 
@@ -62,7 +62,7 @@ impl View3DRenderPipeline {
         // The rest are linked in draw call
 
         Ok(
-            View3DRenderPipeline {
+            Self {
                 deffered_fb,
                 lighting_pass_fb,
                 lighting_pass_shader_program,

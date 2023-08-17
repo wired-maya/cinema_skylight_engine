@@ -1,12 +1,25 @@
 use cgmath::{Matrix4, SquareMatrix};
 use silver_gl::{RenderPipeline, gl};
-use crate::{EngineError, Widget, Scene};
+use crate::{EngineError, Widget, Scene, Widget2dRenderPipeline};
 
 pub struct Widget2dScene {
-    pub render_pipeline: Box<dyn RenderPipeline>,
     pub children: Vec<Box<dyn Widget>>,
+    pub render_pipeline: Box<dyn RenderPipeline>,
     width: i32,
     height: i32
+}
+
+impl Widget2dScene {
+    pub fn new(width: i32, height: i32) -> Result<Self, EngineError> {
+        Ok(
+            Self {
+                render_pipeline: Box::new(Widget2dRenderPipeline::new(width, height)?),
+                children: Vec::new(),
+                width,
+                height
+            }
+        )
+    }
 }
 
 impl Scene for Widget2dScene {
@@ -16,6 +29,10 @@ impl Scene for Widget2dScene {
         
         Ok(())
     }
+
+    fn get_render_pipeline(&self) -> &Box<dyn RenderPipeline> { &self.render_pipeline }
+    fn get_render_pipeline_mut(&mut self) -> &mut Box<dyn RenderPipeline> { &mut self.render_pipeline }
+    fn set_render_pipeline(&mut self, render_pipeline: Box<(dyn RenderPipeline + 'static)>) { self.render_pipeline = render_pipeline }
 
     fn draw(&mut self) -> Result<(), EngineError> {
         unsafe { gl::Disable(gl::DEPTH_TEST) };

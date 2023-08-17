@@ -59,6 +59,10 @@ impl Scene for View3DScene {
 
         Ok(())
     }
+    
+    fn get_render_pipeline(&self) -> &Box<dyn RenderPipeline> { &self.render_pipeline }
+    fn get_render_pipeline_mut(&mut self) -> &mut Box<dyn RenderPipeline> { &mut self.render_pipeline }
+    fn set_render_pipeline(&mut self, render_pipeline: Box<(dyn RenderPipeline + 'static)>) { self.render_pipeline = render_pipeline }
 
     fn draw(&mut self) -> Result<(), EngineError> {
         unsafe { gl::Enable(gl::DEPTH_TEST) };
