@@ -1,4 +1,3 @@
-use cgmath::{Matrix4, SquareMatrix};
 use silver_gl::{RenderPipeline, gl};
 use crate::{EngineError, Widget, Scene, Widget2dRenderPipeline};
 
@@ -40,7 +39,8 @@ impl Scene for Widget2dScene {
         self.render_pipeline.bind();
 
         for widget in &mut self.children {
-            widget.draw(Matrix4::identity())?;
+            // Ortho vec space makes it more intuitive to position widgets
+            widget.draw(cgmath::ortho(0.0, 1.0, 1.0, 0.0, -1.0, 1.0))?;
         }
 
         self.render_pipeline.draw()?;

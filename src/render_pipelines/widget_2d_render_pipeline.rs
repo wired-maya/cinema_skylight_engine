@@ -40,6 +40,7 @@ impl RenderPipeline for Widget2dRenderPipeline {
     }
 
     // No post processing is done (yet), so nothing needed here
+    // TODO: get this to use a shader program
     fn draw(&mut self) -> Result<(), GlError> {
         Ok(())
     }

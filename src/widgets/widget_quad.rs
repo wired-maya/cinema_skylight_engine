@@ -15,19 +15,19 @@ pub fn create_wquad() -> MultiBindModel {
         Vertex {
             position: Vector3::new(0.0, 1.0, 0.0),
             normal: Vector3::new(0.0, 0.0, 1.0),
-            tex_coord: Vector2::new(0.0, 0.0),
+            tex_coord: Vector2::new(0.0, 1.0),
             ..Vertex::default()
         },
         Vertex {
             position: Vector3::new(1.0, 1.0, 0.0),
             normal: Vector3::new(0.0, 0.0, 1.0),
-            tex_coord: Vector2::new(1.0, 0.0),
+            tex_coord: Vector2::new(1.0, 1.0),
             ..Vertex::default()
         },
         Vertex {
             position: Vector3::new(1.0, 0.0, 0.0),
             normal: Vector3::new(0.0, 0.0, 1.0),
-            tex_coord: Vector2::new(1.0, 1.0),
+            tex_coord: Vector2::new(1.0, 0.0),
             ..Vertex::default()
         }
     ];

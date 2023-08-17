@@ -126,16 +126,16 @@ pub trait Widget: Downcast {
         // Convert to range of [-1,1] in screen space
         pos_vec = self.get_vec_space() * pos_vec;
         // Convert from [-1,1] to provided resolution scale
-        pos_vec.x = ((pos_vec.x + 1.0) / 2.0) * screen_width as f32;
-        pos_vec.y = ((pos_vec.y + 1.0) / 2.0) * screen_height as f32;
+        pos_vec.x *= screen_width as f32;
+        pos_vec.y *= screen_height as f32;
 
         vec2(pos_vec.x, pos_vec.y)
     }
     fn set_position_from_res(&mut self, pos: Vector2<f32>, screen_width: i32, screen_height: i32) {
         let mut pos_vec = vec4(pos.x, pos.y, 0.0, 1.0);
         // Convert from provided resolution scale to [-1,1]
-        pos_vec.x = ((pos_vec.x / screen_width as f32) * 2.0) - 1.0;
-        pos_vec.y = ((pos_vec.y / screen_height as f32) * 2.0) - 1.0;
+        pos_vec.x /= screen_width as f32;
+        pos_vec.y /= screen_height as f32;
 
         // Convert to widget's vec space
         let inverted_vec_space = self.get_vec_space()
