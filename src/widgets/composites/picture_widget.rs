@@ -50,7 +50,7 @@ impl FramedWidget for PictureWidget {
     type Inner = TextureWidget;
 
     fn get_padding(&self) -> &Vector4<f32> { &self.padding }
-    fn set_padding_inner_val(&mut self, widths: Vector4<f32>) { self.padding = widths }
+    fn set_padding(&mut self, widths: Vector4<f32>) { self.padding = widths }
 }
 
 impl Widget for PictureWidget {
@@ -77,4 +77,9 @@ impl Widget for PictureWidget {
     fn set_vec_space(&mut self, vec_space: Matrix4<f32>) { self.vec_space = vec_space }
 
     fn update_shader_program(&self) -> Result<(), EngineError> { Ok(()) }
+
+    // Needs to be reimplemented here so draw_children is actually overridden
+    fn draw_children(&mut self, vec_space: &Matrix4<f32>) -> Result<(), EngineError> {
+        FramedWidget::draw_children(self, vec_space)
+    }
 }

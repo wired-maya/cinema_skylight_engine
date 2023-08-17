@@ -40,7 +40,7 @@ impl Scene for Widget2dScene {
 
         for widget in &mut self.children {
             // Ortho vec space makes it more intuitive to position widgets
-            widget.draw(cgmath::ortho(0.0, 1.0, 1.0, 0.0, -1.0, 1.0))?;
+            widget.draw(&cgmath::ortho(0.0, 1.0, 1.0, 0.0, -1.0, 1.0))?;
         }
 
         self.render_pipeline.draw()?;

@@ -151,16 +151,25 @@ pub trait Widget: Downcast {
     // Only unique props need to be set here
     fn update_shader_program(&self) -> Result<(), EngineError>;
 
-    // Draw command should be called from top down, in which case always use
-    // Matrix4::identity()
-    fn draw(&mut self, vec_space: Matrix4<f32>) -> Result<(), EngineError> {
-        self.set_vec_space(vec_space);
-        let transform_matrix = vec_space * self.transform_matrix();
-
+    // Overridable function for drawing children
+    // This exists for composite widgets that may want to alter the vector space of its
+    // children, for example padding in a framed widget, which only effects the inner
+    fn draw_children(&mut self, vec_space: &Matrix4<f32>) -> Result<(), EngineError> {
         // Draw bottom-most widgets first
         for widget in self.get_children_mut() {
-            widget.draw(transform_matrix)?;
+            widget.draw(&vec_space)?;
         }
+
+        Ok(())
+    }
+
+    // Draw command should be called from top down, in which case always use
+    // cgmath::ortho(0.0, 1.0, 1.0, 0.0, -1.0, 1.0)
+    fn draw(&mut self, vec_space: &Matrix4<f32>) -> Result<(), EngineError> {
+        let transform_matrix = vec_space * self.transform_matrix();
+        self.set_vec_space(*vec_space);
+
+        self.draw_children(&transform_matrix)?;
 
         // Set widget's transformation matrix
         self.get_model_mut().get_transform_array_mut().set_data_mut(vec![transform_matrix]);

@@ -1,5 +1,5 @@
-use cgmath::{Vector4, vec2};
-use crate::{primitives::{BackgroundWidget, BorderWidget}, Widget};
+use cgmath::{Vector4, Matrix4, vec3};
+use crate::{primitives::{BackgroundWidget, BorderWidget}, Widget, EngineError};
 
 // TODO: add from funcs
 pub trait FramedWidget: Widget {
@@ -33,19 +33,14 @@ pub trait FramedWidget: Widget {
     fn set_border(&mut self, widget: BorderWidget) { self.get_children_mut()[2] = Box::new(widget); }
 
     fn get_border_widths(&self) -> &Vector4<f32> {&self.get_border().border_widths }
-    fn set_border_widths(&mut self, widths: Vector4<f32>) {
-        self.get_border_mut().border_widths = widths;
-        self.set_inner_transforms();
-    }
+    fn set_border_widths(&mut self, widths: Vector4<f32>) { self.get_border_mut().border_widths = widths; }
 
     fn get_padding(&self) -> &Vector4<f32>;
-    fn set_padding_inner_val(&mut self, widths: Vector4<f32>);
-    fn set_padding(&mut self, widths: Vector4<f32>) {
-        self.set_padding_inner_val(widths);
-        self.set_inner_transforms();
-    }
+    fn set_padding(&mut self, widths: Vector4<f32>);
 
-    fn set_inner_transforms(&mut self) {
+    // Reduces vec space of inner widget by padding and borders
+    fn draw_children(&mut self, vec_space: &Matrix4<f32>) -> Result<(), EngineError> {
+        println!("hello");
         let padding = self.get_padding();
         let border_widths = self.get_border_widths();
 
@@ -55,9 +50,16 @@ pub trait FramedWidget: Widget {
         let x = border_widths.x + padding.x;
         let y = border_widths.z + padding.z;
 
-        let widget = self.get_inner_widget_mut();
+        let mut inner_vec_space = Matrix4::<f32>::from_translation(vec3(x, y, 0.0));
+        inner_vec_space = inner_vec_space * Matrix4::<f32>::from_nonuniform_scale(width, height, 1.0);
+        inner_vec_space = vec_space * inner_vec_space;
 
-        widget.set_size(width, height);
-        widget.set_position(vec2(x, y));
+        let children = self.get_children_mut();
+
+        children[0].draw(vec_space)?;
+        children[1].draw(&inner_vec_space)?;
+        children[2].draw(vec_space)?;
+
+        Ok(())
     }
 }
